@@ -11,7 +11,7 @@
    2. ??? (See [ArchWiki](https://wiki.archlinux.org/index.php/PostgreSQL))
    3. Enable and start **postgresql.service**
    4. Create postgresql user **toyoj-web** and **toyoj-judge**
-   5. Create database **toyoj** from ???
+   5. Create database **toyoj** from toyoj.sql
 2. Setup php-fpm
    1. Install **php-fpm** and **php-pgsql** from official repository.
    2. Enable **pgsql.so** in /etc/php/php.ini.
