@@ -19,7 +19,7 @@
 3. Setup Nginx
    1. Install **nginx-mainline** from official repository.
    2. Copy ??? to /srv/http/toyoj
-   3. Copy ??? to /etc/nginx/nginx.conf
+   3. Include toyoj.conf in a server block of /etc/nginx/nginx.conf
    4. Enable and start **nginx.service**
 4. Setup judge back-end
    1. Install **python** from official repository.
