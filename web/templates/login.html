@@ -1,0 +1,18 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Login - {{ parent() }}{% endblock %}
+{% block content %}
+  <form method="post">
+    <div>
+      <label>Username:</label>
+      <input type="text" name="username" autofocus>
+    </div>
+    <div>
+      <label>Password:</label>
+      <input type="password" name="password">
+    </div>
+    <div>
+      <input type="submit" value="Log in">
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,5 @@
+nav { margin-bottom: 1em; }
+a, a:visited { color: inherit; }
+.message { margin: 1em auto; padding: 1em; border: thin solid; }
+fieldset { border: none; }
+textarea { width: 100%; box-sizing: border-box; }
