@@ -15,6 +15,9 @@ $container["view"] = function ($container) {
     ]);
     $basePath = rtrim(str_ireplace("index.php", "", $container["request"]->getUri()->getBasePath()), "/");
     $view->addExtension(new Slim\Views\TwigExtension($container["router"], $basePath));
+    $view->getEnvironment()->addFilter(new Twig_Filter('markdown', function($string) {
+        return Parsedown::instance()->text($string);
+    }, array("pre_escape" => "html", "is_safe" => array("html"))));
     $view["loggedIn"] = false;
     return $view;
 };
@@ -50,11 +53,16 @@ $app->post("/logout", function (Request $request, Response $response) {
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
-    return $response;
+    $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.visible FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
+    return $this->view->render($response, "problems.html", array("problems" => $problems));
 })->setName("problem-list");
 
-$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
-    return $response;
+$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $stmt = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.visible FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
+    $stmt->execute(array(":pid" => $pid));
+    $problem = $stmt->fetch();
+    return $this->view->render($response, "problem.html", array("problem" => $problem));
 })->setName("problem");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
@@ -114,8 +122,7 @@ $app->get("/submissions/{sid:[0-9]+}/", function (Request $request, Response $re
 })->setName("submission");
 
 $app->get("/users/", function (Request $request, Response $response) {
-    $db = $this->db;
-    $users = $db->query("SELECT uid, username, register_date FROM users ORDER BY uid");
+    $users = $this->db->query("SELECT uid, username, register_date FROM users ORDER BY uid");
     return $this->view->render($response, "users.html", array("users" => $users));
 })->setName("user-list");
 

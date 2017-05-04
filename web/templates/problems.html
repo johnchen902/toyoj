@@ -1,0 +1,27 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Problems - {{ parent() }}{% endblock %}
+{% block content %}
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Title</th>
+      <th>Create Date</th>
+      <th>Manager</th>
+      <th>Visibility</th>
+    </tr>
+{% for prob in problems %}
+    <tr>
+      <td>{{ prob.pid }}</td>
+{% if prob.visible %}
+      <td><a href="{{ path_for('problem', { 'pid': prob.pid }) }}">{{ prob.title }}</a></td>
+{% else %}
+      <td>{{ prob.title }}</td>
+{% endif %}
+      <td><time datetime="{{ prob.create_date|date('c') }}">{{ prob.create_date|date('Y-m-d') }}</time></td>
+      <td><a href="{{ path_for('user', {'uid': prob.manager }) }}">{{ prob.manager_name }}</a></td>
+      <td>{{ prob.visible ? "Visible" : "Hidden"}}</td>
+    </tr>
+{% endfor %}
+  </table>
+{% endblock %}
