@@ -2,11 +2,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-  {% block head %}
+{% block head %}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Toy Online Judge{% endblock %}</title>
   <link rel="stylesheet" href="/default.css" title="Default Style">
-  {% endblock %}
+{% endblock %}
 </head>
 <body>
   <h1>Toy Online Judge</h1>
@@ -15,15 +15,15 @@
     <a href="{{ path_for('problem-list') }}">Problems</a>
     <a href="{{ path_for('submission-list') }}">Submissions</a>
     <a href="{{ path_for('user-list') }}">Users</a>
-    {% if loggedIn %}
+{% if loggedIn %}
     <a href="{{ path_for('logout') }}">Log out</a>
-    {% else %}
+{% else %}
     <a href="{{ path_for('login') }}">Log in</a>
     <a href="{{ path_for('signup') }}">Sign up</a>
-    {% endif %}
+{% endif %}
   </nav>
-  {% block content %}
-    Please override <code>block content</code>.
-  {% endblock %}
+{% block content %}
+  Please override <code>block content</code>.
+{% endblock %}
 </body>
 </html>

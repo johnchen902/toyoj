@@ -1,0 +1,19 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Users - {{ parent() }}{% endblock %}
+{% block content %}
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Register Date</th>
+    </tr>
+{% for user in users %}
+    <tr>
+      <td>{{ user.uid }}</td>
+      <td>{{ user.username }}</td>
+      <td><time datetime="{{ user.register_date|date('c') }}">{{ user.register_date|date('Y-m-d') }}</time></td>
+    </tr>
+{% endfor %}
+  </table>
+{% endblock %}

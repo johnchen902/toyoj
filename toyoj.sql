@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.6.1
--- Dumped by pg_dump version 9.6.1
+-- Dumped from database version 9.6.2
+-- Dumped by pg_dump version 9.6.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -557,6 +557,13 @@ ALTER TABLE ONLY testcases
 
 ALTER TABLE ONLY testcases
     ADD CONSTRAINT testcases_pid_fkey FOREIGN KEY (pid) REFERENCES problems(pid);
+
+
+--
+-- Name: users; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE users TO toyojweb;
 
 
 --
