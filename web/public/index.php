@@ -143,8 +143,15 @@ $app->get("/users/", function (Request $request, Response $response) {
     return $this->view->render($response, "users.html", array("users" => $users));
 })->setName("user-list");
 
-$app->get("/users/{uid}/", function (Request $request, Response $response) {
-    return $response;
+$app->get("/users/{uid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    $uid = $args["uid"];
+    $stmt = $this->db->prepare("SELECT uid, username, register_date FROM users WHERE uid = :uid");
+    $stmt->execute(array(":uid" => $uid));
+    $user = $stmt->fetch();
+    if(!$user) {
+        return ($this->errorview)($response, 404, "No Such User");
+    }
+    return $this->view->render($response, "user.html", array("user" => $user));
 })->setName("user");
 
 $app->run();

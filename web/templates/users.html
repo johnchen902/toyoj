@@ -11,7 +11,7 @@
 {% for user in users %}
     <tr>
       <td>{{ user.uid }}</td>
-      <td>{{ user.username }}</td>
+      <td><a href="{{ path_for('user', { 'uid': user.uid }) }}">{{ user.username }}</a></td>
       <td><time datetime="{{ user.register_date|date('c') }}">{{ user.register_date|date('Y-m-d') }}</time></td>
     </tr>
 {% endfor %}
