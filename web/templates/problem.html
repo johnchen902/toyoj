@@ -29,5 +29,20 @@
   <h3>Subtasks</h3>
   Under construction
   <h3>Test Cases</h3>
-  Under construction
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Time</th>
+      <th>Memory</th>
+      <th>Checker</th>
+    </tr>
+{% for case in testcases %}
+    <tr>
+      <td>{{ case.testcaseid }}</td>
+      <td>{{ case.time_limit }} ms</td>
+      <td>{{ case.memory_limit }} Kib</td>
+      <td>{{ case.checker }}</td>
+    </tr>
+{% endfor %}
+  </table>
 {% endblock %}

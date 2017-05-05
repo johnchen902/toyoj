@@ -145,6 +145,37 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE users (
+    uid integer NOT NULL,
+    username character varying(32) NOT NULL,
+    register_date timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: submissions_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW submissions_view AS
+ SELECT s.sid,
+    s.pid,
+    p.title,
+    p.visible AS problem_visible,
+    s.submitter,
+    u.username AS submitter_name,
+    s.language,
+    s.code,
+    s.submit_time
+   FROM submissions s,
+    problems p,
+    users u
+  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid));
+
+
+--
 -- Name: subtasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -182,17 +213,6 @@ CREATE TABLE testcases (
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE users (
-    uid integer NOT NULL,
-    username character varying(32) NOT NULL,
-    register_date timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
 -- Name: users_uid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -209,6 +229,16 @@ CREATE SEQUENCE users_uid_seq
 --
 
 ALTER SEQUENCE users_uid_seq OWNED BY users.uid;
+
+
+--
+-- Name: verdicts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE verdicts (
+    verdict character varying(8) NOT NULL,
+    severity integer NOT NULL
+);
 
 
 --
@@ -336,6 +366,14 @@ SELECT pg_catalog.setval('users_uid_seq', 1, false);
 
 
 --
+-- Data for Name: verdicts; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY verdicts (verdict, severity) FROM stdin;
+\.
+
+
+--
 -- Name: checkers checkers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -440,6 +478,22 @@ ALTER TABLE ONLY users
 
 
 --
+-- Name: verdicts verdicts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY verdicts
+    ADD CONSTRAINT verdicts_pkey PRIMARY KEY (verdict);
+
+
+--
+-- Name: verdicts verdicts_severity_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY verdicts
+    ADD CONSTRAINT verdicts_severity_key UNIQUE (severity);
+
+
+--
 -- Name: passwords passwords_uid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -485,6 +539,14 @@ ALTER TABLE ONLY results
 
 ALTER TABLE ONLY results
     ADD CONSTRAINT results_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
+
+
+--
+-- Name: results results_verdict_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY results
+    ADD CONSTRAINT results_verdict_fkey FOREIGN KEY (verdict) REFERENCES verdicts(verdict);
 
 
 --
@@ -560,10 +622,31 @@ ALTER TABLE ONLY testcases
 
 
 --
+-- Name: problems; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE problems TO toyojweb;
+
+
+--
 -- Name: users; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT SELECT ON TABLE users TO toyojweb;
+
+
+--
+-- Name: submissions_view; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE submissions_view TO toyojweb;
+
+
+--
+-- Name: testcases; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE testcases TO toyojweb;
 
 
 --

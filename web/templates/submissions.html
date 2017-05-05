@@ -1,0 +1,35 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Problems - {{ parent() }}{% endblock %}
+{% block content %}
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Problem</th>
+      <th>Submitter</th>
+      <th>Verdict</th>
+      <th>Score</th>
+      <th>Time</th>
+      <th>Memory</th>
+      <th>Language</th>
+      <th>Submit Time</th>
+    </tr>
+{% for subm in submissions %}
+    <tr>
+      <td>{{ subm.sid }}</td>
+{% if subm.problem_visible %}
+      <td><a href="{{ path_for('problem', { 'pid': subm.pid }) }}">{{ subm.title }}</a></td>
+{% else %}
+      <td>{{ subm.title }}</td>
+{% endif %}
+      <td><a href="{{ path_for('user', {'uid': subm.submitter }) }}">{{ subm.submitter_name }}</a></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>{{ subm.language }}</td>
+      <td><time datetime="{{ subm.submit_time|date('c') }}">{{ subm.submit_time|date('Y-m-d H:i:s') }}</time></td>
+    </tr>
+{% endfor %}
+  </table>
+{% endblock %}

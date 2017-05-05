@@ -79,7 +79,10 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
     if(!$problem["visible"]) {
         return ($this->errorview)($response, 403, "Problem Not Visible");
     }
-    return $this->view->render($response, "problem.html", array("problem" => $problem));
+
+    $testcases = $this->db->prepare("SELECT pid, testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid");
+    $testcases->execute(array(":pid" => $pid));
+    return $this->view->render($response, "problem.html", array("problem" => $problem, "testcases" => $testcases));
 })->setName("problem");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
@@ -131,7 +134,8 @@ $app->post("/signup", function (Request $request, Response $response) {
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    return $response;
+    $submissions = $this->db->query("SELECT sid, pid, title, problem_visible, submitter, submitter_name, language, submit_time FROM submissions_view ORDER BY sid");
+    return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
 })->setName("submission-list");
 
 $app->get("/submissions/{sid:[0-9]+}/", function (Request $request, Response $response) {
