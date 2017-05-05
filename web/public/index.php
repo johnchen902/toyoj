@@ -27,6 +27,17 @@ $container["db"] = function ($container) {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     return $pdo;
 };
+$container["errorview"] = function ($container) {
+    return function (Response $response, int $status, string $message) use ($container) {
+        $response = $response->withStatus($status);
+        return $container->view->render($response, "error.html", array("status" => $status, "message" => $message));
+    };
+};
+$container["notFoundHandler"] = function ($container) {
+    return function (Request $request, Response $response) use ($container) {
+        return ($container->errorview)($response, 404, "Not Found");
+    };
+};
 
 $app->get("/", function (Request $request, Response $response) {
     return $this->view->render($response, "index.html");
@@ -62,6 +73,12 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
     $stmt = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.visible FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
     $stmt->execute(array(":pid" => $pid));
     $problem = $stmt->fetch();
+    if(!$problem) {
+        return ($this->errorview)($response, 404, "No Such Problem");
+    }
+    if(!$problem["visible"]) {
+        return ($this->errorview)($response, 403, "Problem Not Visible");
+    }
     return $this->view->render($response, "problem.html", array("problem" => $problem));
 })->setName("problem");
 
