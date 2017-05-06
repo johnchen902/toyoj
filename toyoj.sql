@@ -44,6 +44,18 @@ CREATE TABLE checkers (
 
 
 --
+-- Name: judgers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE judgers (
+    pid integer NOT NULL,
+    testcaseid integer NOT NULL,
+    sid integer NOT NULL,
+    judge_name character varying(32) NOT NULL
+);
+
+
+--
 -- Name: languages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -145,6 +157,21 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
+-- Name: testcases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE testcases (
+    pid integer NOT NULL,
+    testcaseid integer NOT NULL,
+    input text NOT NULL,
+    output text NOT NULL,
+    time_limit integer NOT NULL,
+    memory_limit integer NOT NULL,
+    checker character varying(32) NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -153,6 +180,66 @@ CREATE TABLE users (
     username character varying(32) NOT NULL,
     register_date timestamp with time zone DEFAULT now() NOT NULL
 );
+
+
+--
+-- Name: verdicts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE verdicts (
+    verdict character varying(8) NOT NULL,
+    severity integer NOT NULL
+);
+
+
+--
+-- Name: verdicts_view_1; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW verdicts_view_1 AS
+ SELECT pid,
+    sid,
+    testcaseid,
+    COALESCE(results.verdict, 'Judging'::character varying) AS verdict
+   FROM (judgers
+     FULL JOIN results USING (pid, sid, testcaseid));
+
+
+--
+-- Name: verdicts_view_2; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW verdicts_view_2 AS
+ SELECT submissions.pid,
+    submissions.sid,
+    testcases.testcaseid,
+    COALESCE(verdicts_view_1.verdict, 'Waiting'::character varying) AS verdict
+   FROM ((submissions
+     JOIN testcases USING (pid))
+     LEFT JOIN verdicts_view_1 USING (pid, sid, testcaseid));
+
+
+--
+-- Name: verdicts_view_3; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW verdicts_view_3 AS
+ SELECT verdicts_view_2.sid,
+    max(verdicts.severity) AS severity
+   FROM (verdicts_view_2
+     LEFT JOIN verdicts USING (verdict))
+  GROUP BY verdicts_view_2.sid;
+
+
+--
+-- Name: verdicts_view_4; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW verdicts_view_4 AS
+ SELECT verdicts_view_3.sid,
+    verdicts.verdict
+   FROM (verdicts_view_3
+     LEFT JOIN verdicts USING (severity));
 
 
 --
@@ -168,11 +255,13 @@ CREATE VIEW submissions_view AS
     u.username AS submitter_name,
     s.language,
     s.code,
-    s.submit_time
+    s.submit_time,
+    v.verdict
    FROM submissions s,
     problems p,
-    users u
-  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid));
+    users u,
+    verdicts_view_4 v
+  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = v.sid));
 
 
 --
@@ -198,21 +287,6 @@ CREATE TABLE subtasktestcases (
 
 
 --
--- Name: testcases; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE testcases (
-    pid integer NOT NULL,
-    testcaseid integer NOT NULL,
-    input text NOT NULL,
-    output text NOT NULL,
-    time_limit integer NOT NULL,
-    memory_limit integer NOT NULL,
-    checker character varying(32) NOT NULL
-);
-
-
---
 -- Name: users_uid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -229,16 +303,6 @@ CREATE SEQUENCE users_uid_seq
 --
 
 ALTER SEQUENCE users_uid_seq OWNED BY users.uid;
-
-
---
--- Name: verdicts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE verdicts (
-    verdict character varying(8) NOT NULL,
-    severity integer NOT NULL
-);
 
 
 --
@@ -268,6 +332,14 @@ ALTER TABLE ONLY users ALTER COLUMN uid SET DEFAULT nextval('users_uid_seq'::reg
 
 COPY checkers (name) FROM stdin;
 exact
+\.
+
+
+--
+-- Data for Name: judgers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY judgers (pid, testcaseid, sid, judge_name) FROM stdin;
 \.
 
 
@@ -370,6 +442,15 @@ SELECT pg_catalog.setval('users_uid_seq', 1, false);
 --
 
 COPY verdicts (verdict, severity) FROM stdin;
+AC	0
+Waiting	10
+Judging	20
+WA	30
+TLE	40
+MLE	50
+RE	60
+CE	90
+XX	100
 \.
 
 
@@ -379,6 +460,14 @@ COPY verdicts (verdict, severity) FROM stdin;
 
 ALTER TABLE ONLY checkers
     ADD CONSTRAINT checkers_pkey PRIMARY KEY (name);
+
+
+--
+-- Name: judgers judging_results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judging_results_pkey PRIMARY KEY (pid, testcaseid, sid);
 
 
 --
@@ -491,6 +580,38 @@ ALTER TABLE ONLY verdicts
 
 ALTER TABLE ONLY verdicts
     ADD CONSTRAINT verdicts_severity_key UNIQUE (severity);
+
+
+--
+-- Name: judgers judging_results_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judging_results_pid_fkey FOREIGN KEY (pid) REFERENCES problems(pid);
+
+
+--
+-- Name: judgers judging_results_pid_fkey1; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judging_results_pid_fkey1 FOREIGN KEY (pid, testcaseid) REFERENCES testcases(pid, testcaseid);
+
+
+--
+-- Name: judgers judging_results_pid_fkey2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judging_results_pid_fkey2 FOREIGN KEY (pid, sid) REFERENCES submissions(pid, sid);
+
+
+--
+-- Name: judgers judging_results_sid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judging_results_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
 
 
 --
