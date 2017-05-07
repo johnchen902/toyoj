@@ -138,6 +138,41 @@ CREATE TABLE submissions (
 
 
 --
+-- Name: testcases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE testcases (
+    pid integer NOT NULL,
+    testcaseid integer NOT NULL,
+    input text NOT NULL,
+    output text NOT NULL,
+    time_limit integer NOT NULL,
+    memory_limit integer NOT NULL,
+    checker character varying(32) NOT NULL
+);
+
+
+--
+-- Name: results_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW results_view AS
+ SELECT submissions.sid,
+    testcases.testcaseid,
+    results.accepted,
+    results."time",
+    results.memory,
+    results.judge_time,
+    results.verdict,
+    judgers.judge_name
+   FROM (((submissions
+     JOIN testcases USING (pid))
+     LEFT JOIN results USING (pid, testcaseid, sid))
+     LEFT JOIN judgers USING (pid, testcaseid, sid))
+  ORDER BY ROW(submissions.sid, testcases.testcaseid);
+
+
+--
 -- Name: submissions_sid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -157,21 +192,6 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
--- Name: testcases; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE testcases (
-    pid integer NOT NULL,
-    testcaseid integer NOT NULL,
-    input text NOT NULL,
-    output text NOT NULL,
-    time_limit integer NOT NULL,
-    memory_limit integer NOT NULL,
-    checker character varying(32) NOT NULL
-);
-
-
---
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -180,66 +200,6 @@ CREATE TABLE users (
     username character varying(32) NOT NULL,
     register_date timestamp with time zone DEFAULT now() NOT NULL
 );
-
-
---
--- Name: verdicts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE verdicts (
-    verdict character varying(8) NOT NULL,
-    severity integer NOT NULL
-);
-
-
---
--- Name: verdicts_view_1; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW verdicts_view_1 AS
- SELECT pid,
-    sid,
-    testcaseid,
-    COALESCE(results.verdict, 'Judging'::character varying) AS verdict
-   FROM (judgers
-     FULL JOIN results USING (pid, sid, testcaseid));
-
-
---
--- Name: verdicts_view_2; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW verdicts_view_2 AS
- SELECT submissions.pid,
-    submissions.sid,
-    testcases.testcaseid,
-    COALESCE(verdicts_view_1.verdict, 'Waiting'::character varying) AS verdict
-   FROM ((submissions
-     JOIN testcases USING (pid))
-     LEFT JOIN verdicts_view_1 USING (pid, sid, testcaseid));
-
-
---
--- Name: verdicts_view_3; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW verdicts_view_3 AS
- SELECT verdicts_view_2.sid,
-    max(verdicts.severity) AS severity
-   FROM (verdicts_view_2
-     LEFT JOIN verdicts USING (verdict))
-  GROUP BY verdicts_view_2.sid;
-
-
---
--- Name: verdicts_view_4; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW verdicts_view_4 AS
- SELECT verdicts_view_3.sid,
-    verdicts.verdict
-   FROM (verdicts_view_3
-     LEFT JOIN verdicts USING (severity));
 
 
 --
@@ -255,12 +215,23 @@ CREATE VIEW submissions_view AS
     s.language,
     s.code,
     s.submit_time,
-    v.verdict
+    r.accepted,
+    r.rejected,
+    r."time",
+    r.memory,
+    r.judge_time
    FROM submissions s,
     problems p,
     users u,
-    verdicts_view_4 v
-  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = v.sid));
+    ( SELECT results_view.sid,
+            every((results_view.accepted IS TRUE)) AS accepted,
+            bool_or((results_view.accepted IS FALSE)) AS rejected,
+            max(results_view."time") AS "time",
+            max(results_view.memory) AS memory,
+            max(results_view.judge_time) AS judge_time
+           FROM results_view
+          GROUP BY results_view.sid) r
+  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid));
 
 
 --
@@ -437,23 +408,6 @@ SELECT pg_catalog.setval('users_uid_seq', 1, false);
 
 
 --
--- Data for Name: verdicts; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY verdicts (verdict, severity) FROM stdin;
-AC	0
-Waiting	10
-Judging	20
-WA	30
-TLE	40
-MLE	50
-RE	60
-CE	90
-XX	100
-\.
-
-
---
 -- Name: checkers checkers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -566,22 +520,6 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: verdicts verdicts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY verdicts
-    ADD CONSTRAINT verdicts_pkey PRIMARY KEY (verdict);
-
-
---
--- Name: verdicts verdicts_severity_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY verdicts
-    ADD CONSTRAINT verdicts_severity_key UNIQUE (severity);
-
-
---
 -- Name: judgers judging_results_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -659,14 +597,6 @@ ALTER TABLE ONLY results
 
 ALTER TABLE ONLY results
     ADD CONSTRAINT results_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
-
-
---
--- Name: results results_verdict_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY results
-    ADD CONSTRAINT results_verdict_fkey FOREIGN KEY (verdict) REFERENCES verdicts(verdict);
 
 
 --
@@ -749,6 +679,13 @@ GRANT SELECT ON TABLE problems TO toyojweb;
 
 
 --
+-- Name: testcases; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE testcases TO toyojweb;
+
+
+--
 -- Name: users; Type: ACL; Schema: public; Owner: -
 --
 
@@ -760,13 +697,6 @@ GRANT SELECT ON TABLE users TO toyojweb;
 --
 
 GRANT SELECT ON TABLE submissions_view TO toyojweb;
-
-
---
--- Name: testcases; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE testcases TO toyojweb;
 
 
 --

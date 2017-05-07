@@ -131,7 +131,7 @@ $app->post("/signup", function (Request $request, Response $response) {
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, verdict, language, submit_time FROM submissions_view ORDER BY sid");
+    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, time, memory, language, submit_time, judge_time FROM submissions_view ORDER BY sid");
     return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
 })->setName("submission-list");
 
