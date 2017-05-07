@@ -17,7 +17,7 @@
     </tr>
 {% for subm in submissions %}
     <tr>
-      <td>{{ subm.sid }}</td>
+      <td><a href="{{ path_for('submission', { 'sid': subm.sid }) }}">{{ subm.sid }}</a></td>
       <td><a href="{{ path_for('problem', { 'pid': subm.pid }) }}">{{ subm.title }}</a></td>
       <td><a href="{{ path_for('user', {'uid': subm.submitter }) }}">{{ subm.submitter_name }}</a></td>
       <td>{{ subm.accepted ? "Yes" : (subm.rejected ? "No" : "Unsure") }}</td>
