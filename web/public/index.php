@@ -140,7 +140,7 @@ $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Reques
 });
 
 $app->get("/signup", function (Request $request, Response $response) {
-    return $response;
+    return $this->view->render($response, "signup.html");
 })->setName("signup");
 
 $app->post("/signup", function (Request $request, Response $response) {
