@@ -23,7 +23,7 @@
       <td>{{ subm.accepted ? "Yes" : (subm.rejected ? "No" : "Unsure") }}</td>
       <td>{% if subm.minscore == subm.maxscore %}{{ subm.minscore }}{% else %}({{ subm.minscore }} &ndash; {{subm.maxscore}}){% endif %} / {{ subm.fullscore }}</td>
       <td>{% if not subm.time is null %}{{ subm.time }} ms {% endif %}</td>
-      <td>{% if not subm.memory is null %}{{ subm.memory }} Kib{% endif %}</td>
+      <td>{% if not subm.memory is null %}{{ subm.memory }} KiB{% endif %}</td>
       <td>{{ subm.language }}</td>
       <td><time datetime="{{ subm.submit_time|date('c') }}">{{ subm.submit_time|date('Y-m-d H:i:s') }}</time></td>
       <td>{% if not subm.judge_time is null %}<time datetime="{{ subm.judge_time|date('c') }}">{{ subm.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>

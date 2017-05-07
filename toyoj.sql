@@ -192,29 +192,44 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
--- Name: subtasktestcases; Type: TABLE; Schema: public; Owner: -
+-- Name: submissions_view; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE subtasktestcases (
-    pid integer NOT NULL,
-    subtaskid integer NOT NULL,
-    testcaseid integer NOT NULL
+CREATE TABLE submissions_view (
+    sid integer,
+    pid integer,
+    title character varying(128),
+    submitter integer,
+    submitter_name character varying(32),
+    language character varying(32),
+    code text,
+    submit_time timestamp with time zone,
+    accepted boolean,
+    rejected boolean,
+    "time" integer,
+    memory integer,
+    judge_time timestamp with time zone,
+    minscore bigint,
+    maxscore bigint,
+    fullscore bigint
 );
 
+ALTER TABLE ONLY submissions_view REPLICA IDENTITY NOTHING;
+
 
 --
--- Name: subtask_results_view; Type: VIEW; Schema: public; Owner: -
+-- Name: subtask_results_view; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE VIEW subtask_results_view AS
- SELECT submissions.sid,
-    subtasktestcases.subtaskid,
-    every((results.accepted IS TRUE)) AS accepted,
-    bool_or((results.accepted IS FALSE)) AS rejected
-   FROM ((submissions
-     JOIN subtasktestcases USING (pid))
-     LEFT JOIN results USING (sid, testcaseid))
-  GROUP BY submissions.sid, subtasktestcases.subtaskid;
+CREATE TABLE subtask_results_view (
+    sid integer,
+    subtaskid integer,
+    accepted boolean,
+    rejected boolean,
+    pid integer
+);
+
+ALTER TABLE ONLY subtask_results_view REPLICA IDENTITY NOTHING;
 
 
 --
@@ -229,64 +244,25 @@ CREATE TABLE subtasks (
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: -
+-- Name: subtask_results_view_2; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE TABLE users (
-    uid integer NOT NULL,
-    username character varying(32) NOT NULL,
-    register_date timestamp with time zone DEFAULT now() NOT NULL
-);
-
-
---
--- Name: submissions_view; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW submissions_view AS
- SELECT s.sid,
-    s.pid,
-    p.title,
-    s.submitter,
-    u.username AS submitter_name,
-    s.language,
-    s.code,
-    s.submit_time,
-    r.accepted,
-    r.rejected,
-    r."time",
-    r.memory,
-    r.judge_time,
-    t.minscore,
-    t.maxscore,
-    t.fullscore
-   FROM submissions s,
-    problems p,
-    users u,
-    ( SELECT results_view.sid,
-            every((results_view.accepted IS TRUE)) AS accepted,
-            bool_or((results_view.accepted IS FALSE)) AS rejected,
-            max(results_view."time") AS "time",
-            max(results_view.memory) AS memory,
-            max(results_view.judge_time) AS judge_time
-           FROM results_view
-          GROUP BY results_view.sid) r,
-    ( SELECT subtask_results_view.sid,
-            sum(
-                CASE
-                    WHEN subtask_results_view.accepted THEN subtasks.score
-                    ELSE 0
-                END) AS minscore,
-            sum(
-                CASE
-                    WHEN subtask_results_view.rejected THEN 0
-                    ELSE subtasks.score
-                END) AS maxscore,
-            sum(subtasks.score) AS fullscore
-           FROM (subtask_results_view
-             JOIN subtasks USING (subtaskid))
-          GROUP BY subtask_results_view.sid) t
-  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid) AND (s.sid = t.sid));
+CREATE VIEW subtask_results_view_2 AS
+ SELECT subtask_results_view.sid,
+    subtask_results_view.subtaskid,
+    subtask_results_view.accepted,
+    subtask_results_view.rejected,
+        CASE
+            WHEN subtask_results_view.accepted THEN subtasks.score
+            ELSE 0
+        END AS minscore,
+        CASE
+            WHEN subtask_results_view.rejected THEN 0
+            ELSE subtasks.score
+        END AS maxscore,
+    subtasks.score AS fullscore
+   FROM (subtask_results_view
+     JOIN subtasks USING (pid, subtaskid));
 
 
 --
@@ -301,6 +277,28 @@ CREATE TABLE subtasks_view (
 );
 
 ALTER TABLE ONLY subtasks_view REPLICA IDENTITY NOTHING;
+
+
+--
+-- Name: subtasktestcases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE subtasktestcases (
+    pid integer NOT NULL,
+    subtaskid integer NOT NULL,
+    testcaseid integer NOT NULL
+);
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE users (
+    uid integer NOT NULL,
+    username character varying(32) NOT NULL,
+    register_date timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -567,6 +565,72 @@ ALTER TABLE ONLY users
 
 
 --
+-- Name: submissions_view _RETURN; Type: RULE; Schema: public; Owner: -
+--
+
+CREATE RULE "_RETURN" AS
+    ON SELECT TO submissions_view DO INSTEAD  SELECT s.sid,
+    s.pid,
+    p.title,
+    s.submitter,
+    u.username AS submitter_name,
+    s.language,
+    s.code,
+    s.submit_time,
+    r.accepted,
+    r.rejected,
+    r."time",
+    r.memory,
+    r.judge_time,
+    t.minscore,
+    t.maxscore,
+    t.fullscore
+   FROM submissions s,
+    problems p,
+    users u,
+    ( SELECT results_view.sid,
+            every((results_view.accepted IS TRUE)) AS accepted,
+            bool_or((results_view.accepted IS FALSE)) AS rejected,
+            max(results_view."time") AS "time",
+            max(results_view.memory) AS memory,
+            max(results_view.judge_time) AS judge_time
+           FROM results_view
+          GROUP BY results_view.sid) r,
+    ( SELECT subtask_results_view.sid,
+            sum(
+                CASE
+                    WHEN subtask_results_view.accepted THEN subtasks.score
+                    ELSE 0
+                END) AS minscore,
+            sum(
+                CASE
+                    WHEN subtask_results_view.rejected THEN 0
+                    ELSE subtasks.score
+                END) AS maxscore,
+            sum(subtasks.score) AS fullscore
+           FROM (subtask_results_view
+             JOIN subtasks USING (subtaskid))
+          GROUP BY subtask_results_view.sid) t
+  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid) AND (s.sid = t.sid));
+
+
+--
+-- Name: subtask_results_view _RETURN; Type: RULE; Schema: public; Owner: -
+--
+
+CREATE RULE "_RETURN" AS
+    ON SELECT TO subtask_results_view DO INSTEAD  SELECT submissions.sid,
+    subtasktestcases.subtaskid,
+    every((results.accepted IS TRUE)) AS accepted,
+    bool_or((results.accepted IS FALSE)) AS rejected,
+    submissions.pid
+   FROM ((submissions
+     JOIN subtasktestcases USING (pid))
+     LEFT JOIN results USING (sid, testcaseid))
+  GROUP BY submissions.sid, subtasktestcases.subtaskid;
+
+
+--
 -- Name: subtasks_view _RETURN; Type: RULE; Schema: public; Owner: -
 --
 
@@ -754,13 +818,6 @@ GRANT SELECT ON TABLE testcases TO toyojweb;
 
 
 --
--- Name: users; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE users TO toyojweb;
-
-
---
 -- Name: submissions_view; Type: ACL; Schema: public; Owner: -
 --
 
@@ -768,10 +825,24 @@ GRANT SELECT ON TABLE submissions_view TO toyojweb;
 
 
 --
+-- Name: subtask_results_view_2; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE subtask_results_view_2 TO toyojweb;
+
+
+--
 -- Name: subtasks_view; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT SELECT ON TABLE subtasks_view TO toyojweb;
+
+
+--
+-- Name: users; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE users TO toyojweb;
 
 
 --
