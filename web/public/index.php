@@ -70,16 +70,33 @@ $app->get("/problems/", function (Request $request, Response $response) {
 
 $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
-    $stmt = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
-    $stmt->execute(array(":pid" => $pid));
-    $problem = $stmt->fetch();
+    $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
 
-    $testcases = $this->db->prepare("SELECT pid, testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid");
+    $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
+    $subtasks->execute(array(":pid" => $pid));
+    $subtasks = $subtasks->fetchAll();
+    foreach($subtasks as &$subtask) {
+        $tcids = array_map(intval, explode(",", substr($subtask["testcaseids"], 1, -1)));
+        sort($tcids);
+        $subtask["testcaseids"] = implode(", ", $tcids);
+    }
+
+    $testcases = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid ORDER BY testcaseid");
     $testcases->execute(array(":pid" => $pid));
-    return $this->view->render($response, "problem.html", array("problem" => $problem, "testcases" => $testcases));
+    $testcases = $testcases->fetchAll();
+
+    return $this->view->render($response, "problem.html",
+        array(
+            "problem" => $problem,
+            "subtasks" => $subtasks,
+            "testcases" => $testcases,
+        )
+    );
 })->setName("problem");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
@@ -131,7 +148,7 @@ $app->post("/signup", function (Request $request, Response $response) {
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, time, memory, language, submit_time, judge_time FROM submissions_view ORDER BY sid");
+    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, minscore, maxscore, fullscore, time, memory, language, submit_time, judge_time FROM submissions_view ORDER BY sid DESC");
     return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
 })->setName("submission-list");
 

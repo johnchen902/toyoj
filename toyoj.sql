@@ -192,6 +192,43 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
+-- Name: subtasktestcases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE subtasktestcases (
+    pid integer NOT NULL,
+    subtaskid integer NOT NULL,
+    testcaseid integer NOT NULL
+);
+
+
+--
+-- Name: subtask_results_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW subtask_results_view AS
+ SELECT submissions.sid,
+    subtasktestcases.subtaskid,
+    every((results.accepted IS TRUE)) AS accepted,
+    bool_or((results.accepted IS FALSE)) AS rejected
+   FROM ((submissions
+     JOIN subtasktestcases USING (pid))
+     LEFT JOIN results USING (sid, testcaseid))
+  GROUP BY submissions.sid, subtasktestcases.subtaskid;
+
+
+--
+-- Name: subtasks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE subtasks (
+    pid integer NOT NULL,
+    subtaskid integer NOT NULL,
+    score integer NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -219,7 +256,10 @@ CREATE VIEW submissions_view AS
     r.rejected,
     r."time",
     r.memory,
-    r.judge_time
+    r.judge_time,
+    t.minscore,
+    t.maxscore,
+    t.fullscore
    FROM submissions s,
     problems p,
     users u,
@@ -230,30 +270,23 @@ CREATE VIEW submissions_view AS
             max(results_view.memory) AS memory,
             max(results_view.judge_time) AS judge_time
            FROM results_view
-          GROUP BY results_view.sid) r
-  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid));
-
-
---
--- Name: subtasks; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE subtasks (
-    pid integer NOT NULL,
-    subtaskid integer NOT NULL,
-    score integer NOT NULL
-);
-
-
---
--- Name: subtasktestcases; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE subtasktestcases (
-    pid integer NOT NULL,
-    subtaskid integer NOT NULL,
-    testcaseid integer NOT NULL
-);
+          GROUP BY results_view.sid) r,
+    ( SELECT subtask_results_view.sid,
+            sum(
+                CASE
+                    WHEN subtask_results_view.accepted THEN subtasks.score
+                    ELSE 0
+                END) AS minscore,
+            sum(
+                CASE
+                    WHEN subtask_results_view.rejected THEN 0
+                    ELSE subtasks.score
+                END) AS maxscore,
+            sum(subtasks.score) AS fullscore
+           FROM (subtask_results_view
+             JOIN subtasks USING (subtaskid))
+          GROUP BY subtask_results_view.sid) t
+  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid) AND (s.sid = t.sid));
 
 
 --
