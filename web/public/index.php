@@ -4,6 +4,12 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 require "../vendor/autoload.php";
 
+function redirect(Response $response, int $code, string $location) {
+    $response = $response->withStatus($code);
+    $response = $response->withHeader("Location", $location);
+    return $response;
+}
+
 date_default_timezone_set("Asia/Taipei");
 
 $config["displayErrorDetails"] = true;
@@ -113,11 +119,29 @@ $app->get("/login", function (Request $request, Response $response) {
     return $this->view->render($response, "login.html");
 })->setName("login");
 $app->post("/login", function (Request $request, Response $response) {
-    // TODO implement login
-    $this->messages[] = "Log In is not implemented";
-    $response = $response->withStatus(303);
-    $response = $response->withHeader("Location", $this->router->pathFor("login"));
-    return $response;
+    if($this->session["login"] ?? false) {
+        $this->messages[] = "Already logged in";
+        return redirect($response, 303, $this->router->pathFor("index"));
+    }
+
+    $username = $request->getParsedBodyParam("username");
+    $password = $request->getParsedBodyParam("password");
+    $stmt = $this->db->prepare("SELECT uid, hash FROM users JOIN passwords USING (uid) WHERE username=:username");
+    $stmt->execute(array("username" => $username));
+    $user = $stmt->fetch();
+    if(!$user) {
+        $this->messages[] = "Incorrect username or password";
+        return redirect($response, 303, $this->router->pathFor("login"));
+    }
+    if(!password_verify($password, $user["hash"])) {
+        $this->messages[] = "Incorrect username or password";
+        return redirect($response, 303, $this->router->pathFor("login"));
+    }
+
+    $this->session["login"] = $user["uid"];
+
+    $this->messages[] = "Logged in successfully";
+    return redirect($response, 303, $this->router->pathFor("index"));
 });
 
 $app->get("/logout", function (Request $request, Response $response) {
@@ -125,11 +149,13 @@ $app->get("/logout", function (Request $request, Response $response) {
 })->setName("logout");
 
 $app->post("/logout", function (Request $request, Response $response) {
-    // TODO implement logout
-    $this->messages[] = "Log Out is not implemented";
-    $response = $response->withStatus(303);
-    $response = $response->withHeader("Location", $this->router->pathFor("logout"));
-    return $response;
+    if(isset($this->session["login"])) {
+        unset($this->session["login"]);
+        $this->messages[] = "Logged out successfully";
+    } else {
+        $this->messages[] = "You are not logged in";
+    }
+    return redirect($response, 303, $this->router->pathFor("login"));
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
@@ -171,9 +197,7 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
     // TODO implement submit
     $this->messages[] = "Submit is not implemented";
     $pid = $args["pid"];
-    $response = $response->withStatus(303);
-    $response = $response->withHeader("Location", $this->router->pathFor("problem", array("pid" => $pid)));
-    return $response;
+    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
 });
 
 $app->get("/problems/new", function (Request $request, Response $response) {

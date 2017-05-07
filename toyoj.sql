@@ -290,6 +290,20 @@ CREATE VIEW submissions_view AS
 
 
 --
+-- Name: subtasks_view; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE subtasks_view (
+    pid integer,
+    subtaskid integer,
+    score integer,
+    testcaseids integer[]
+);
+
+ALTER TABLE ONLY subtasks_view REPLICA IDENTITY NOTHING;
+
+
+--
 -- Name: users_uid_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -553,6 +567,20 @@ ALTER TABLE ONLY users
 
 
 --
+-- Name: subtasks_view _RETURN; Type: RULE; Schema: public; Owner: -
+--
+
+CREATE RULE "_RETURN" AS
+    ON SELECT TO subtasks_view DO INSTEAD  SELECT subtasks.pid,
+    subtasks.subtaskid,
+    subtasks.score,
+    array_agg(subtasktestcases.testcaseid) AS testcaseids
+   FROM (subtasks
+     LEFT JOIN subtasktestcases USING (pid, subtaskid))
+  GROUP BY subtasks.pid, subtasks.subtaskid;
+
+
+--
 -- Name: judgers judging_results_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -705,6 +733,13 @@ ALTER TABLE ONLY testcases
 
 
 --
+-- Name: passwords; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE passwords TO toyojweb;
+
+
+--
 -- Name: problems; Type: ACL; Schema: public; Owner: -
 --
 
@@ -730,6 +765,13 @@ GRANT SELECT ON TABLE users TO toyojweb;
 --
 
 GRANT SELECT ON TABLE submissions_view TO toyojweb;
+
+
+--
+-- Name: subtasks_view; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE subtasks_view TO toyojweb;
 
 
 --
