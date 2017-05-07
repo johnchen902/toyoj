@@ -17,11 +17,7 @@
 {% for subm in submissions %}
     <tr>
       <td>{{ subm.sid }}</td>
-{% if subm.problem_visible %}
       <td><a href="{{ path_for('problem', { 'pid': subm.pid }) }}">{{ subm.title }}</a></td>
-{% else %}
-      <td>{{ subm.title }}</td>
-{% endif %}
       <td><a href="{{ path_for('user', {'uid': subm.submitter }) }}">{{ subm.submitter_name }}</a></td>
       <td>{{ subm.verdict }}</td>
       <td></td>

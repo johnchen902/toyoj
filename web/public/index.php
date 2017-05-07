@@ -64,20 +64,17 @@ $app->post("/logout", function (Request $request, Response $response) {
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
-    $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.visible FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
+    $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
     return $this->view->render($response, "problems.html", array("problems" => $problems));
 })->setName("problem-list");
 
 $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
-    $stmt = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.visible FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
+    $stmt = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
     $stmt->execute(array(":pid" => $pid));
     $problem = $stmt->fetch();
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    if(!$problem["visible"]) {
-        return ($this->errorview)($response, 403, "Problem Not Visible");
     }
 
     $testcases = $this->db->prepare("SELECT pid, testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid");
@@ -134,7 +131,7 @@ $app->post("/signup", function (Request $request, Response $response) {
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    $submissions = $this->db->query("SELECT sid, pid, title, problem_visible, submitter, submitter_name, verdict, language, submit_time FROM submissions_view ORDER BY sid");
+    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, verdict, language, submit_time FROM submissions_view ORDER BY sid");
     return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
 })->setName("submission-list");
 

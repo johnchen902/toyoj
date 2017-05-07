@@ -10,7 +10,12 @@
     You must sign in to submit.
   </div>
 {% endif %}
-  <form method="post"><fieldset{% if not loggedIn %} disabled{% endif %}>
+{% if not problem.ready %}
+  <div class="message">
+    This problem is not ready for submission.
+  </div>
+{% endif %}
+  <form method="post"><fieldset{% if not loggedIn or not problem.ready %} disabled{% endif %}>
     <input type="hidden" name="language" value="C++14">
     <div>
       <label>

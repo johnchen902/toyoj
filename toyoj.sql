@@ -84,7 +84,7 @@ CREATE TABLE problems (
     title character varying(128) NOT NULL,
     create_date timestamp with time zone DEFAULT now() NOT NULL,
     manager integer NOT NULL,
-    visible boolean NOT NULL
+    ready boolean DEFAULT false NOT NULL
 );
 
 
@@ -250,7 +250,6 @@ CREATE VIEW submissions_view AS
  SELECT s.sid,
     s.pid,
     p.title,
-    p.visible AS problem_visible,
     s.submitter,
     u.username AS submitter_name,
     s.language,
@@ -364,7 +363,7 @@ COPY passwords (uid, hash) FROM stdin;
 -- Data for Name: problems; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-COPY problems (pid, statement, title, create_date, manager, visible) FROM stdin;
+COPY problems (pid, statement, title, create_date, manager, ready) FROM stdin;
 \.
 
 
