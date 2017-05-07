@@ -5,7 +5,7 @@
   <h2>{{ problem.title }}</h2>
   {{ problem.statement|markdown }}
   <h3>Submission Area</h3>
-{% if not loggedIn %}
+{% if not login %}
   <div class="message">
     You must sign in to submit.
   </div>
@@ -15,7 +15,7 @@
     This problem is not ready for submission.
   </div>
 {% endif %}
-  <form method="post"><fieldset{% if not loggedIn or not problem.ready %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not login or (not problem.ready and login != problem.manager) %} disabled{% endif %}>
     <input type="hidden" name="language" value="C++14">
     <div>
       <label>

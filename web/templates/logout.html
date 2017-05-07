@@ -2,7 +2,7 @@
 {% extends "base.html" %}
 {% block title %}Log Out - {{ parent() }}{% endblock %}
 {% block content %}
-  <form method="post"><fieldset{% if not loggedIn %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not login %} disabled{% endif %}>
     <div>
       <input type="submit" value="Log out">
     </div>

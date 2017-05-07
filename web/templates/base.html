@@ -15,13 +15,19 @@
     <a href="{{ path_for('problem-list') }}">Problems</a>
     <a href="{{ path_for('submission-list') }}">Submissions</a>
     <a href="{{ path_for('user-list') }}">Users</a>
-{% if loggedIn %}
+{% if login %}
+    <a href="{{ path_for('user', { 'uid': login }) }}">Profile</a>
     <a href="{{ path_for('logout') }}">Log out</a>
 {% else %}
     <a href="{{ path_for('login') }}">Log in</a>
     <a href="{{ path_for('signup') }}">Sign up</a>
 {% endif %}
   </nav>
+{% for msg in messages %}
+  <div class="message">
+    {{ msg }}
+  </div>
+{% endfor %}
 {% block content %}
   Please override <code>block content</code>.
 {% endblock %}

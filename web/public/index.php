@@ -18,7 +18,8 @@ $container["view"] = function ($container) {
     $view->getEnvironment()->addFilter(new Twig_Filter('markdown', function($string) {
         return Parsedown::instance()->text($string);
     }, array("pre_escape" => "html", "is_safe" => array("html"))));
-    $view["loggedIn"] = false;
+    $view["login"] = $container->session["login"] ?? 0;
+    $view["messages"] = $container->messages;
     return $view;
 };
 $container["db"] = function ($container) {
@@ -38,6 +39,71 @@ $container["notFoundHandler"] = function ($container) {
         return ($container->errorview)($response, 404, "Not Found");
     };
 };
+$container["session"] = function ($container) {
+    session_start();
+    class SessionWrapper implements ArrayAccess {
+        public function offsetExists($offset) {
+            return isset($_SESSION[$offset]);
+        }
+        public function &offsetGet($offset) {
+            return $_SESSION[$offset];
+        }
+        public function offsetSet($offset, $value) {
+            if(is_null($offset))
+                $_SESSION[] = $value;
+            else
+                $_SESSION[$offset] = $value;
+        }
+        public function offsetUnset($offset) {
+            unset($_SESSION[$offset]);
+        }
+    };
+    return new SessionWrapper();
+};
+$container["messages"] = function ($container) {
+    class MessageWrapper implements Iterator, ArrayAccess {
+        public function __construct($session) {
+            $this->session = $session;
+        }
+
+        public function current() {
+            return $this->session["messages"][0];
+        }
+        public function key() {
+            return 0;
+        }
+        public function next() {
+            array_shift($this->session["messages"]);
+        }
+        public function rewind() {
+            // No-op
+        }
+        public function valid() {
+            return isset($this->session["messages"][0]);
+        }
+
+
+        public function offsetExists($offset) {
+            return isset($this->session["messages"][$offset]);
+        }
+        public function &offsetGet($offset) {
+            return $this->session["messages"][$offset];
+        }
+        public function offsetSet($offset, $value) {
+            if(is_null($offset))
+                $this->session["messages"][] = $value;
+            else
+                $this->session["messages"][$offset] = $value;
+        }
+        public function offsetUnset($offset) {
+            unset($this->session["messages"][$offset]);
+        }
+    };
+    $session = $container->session;
+    if(!isset($session["messages"]))
+        $session["messages"] = array();
+    return new MessageWrapper($session);
+};
 
 $app->get("/", function (Request $request, Response $response) {
     return $this->view->render($response, "index.html");
@@ -46,10 +112,11 @@ $app->get("/", function (Request $request, Response $response) {
 $app->get("/login", function (Request $request, Response $response) {
     return $this->view->render($response, "login.html");
 })->setName("login");
-
 $app->post("/login", function (Request $request, Response $response) {
+    // TODO implement login
+    $this->messages[] = "Log In is not implemented";
     $response = $response->withStatus(303);
-    $response = $response->withHeader("Location", $_SERVER['REQUEST_URI']);
+    $response = $response->withHeader("Location", $this->router->pathFor("login"));
     return $response;
 });
 
@@ -58,8 +125,10 @@ $app->get("/logout", function (Request $request, Response $response) {
 })->setName("logout");
 
 $app->post("/logout", function (Request $request, Response $response) {
+    // TODO implement logout
+    $this->messages[] = "Log Out is not implemented";
     $response = $response->withStatus(303);
-    $response = $response->withHeader("Location", $_SERVER['REQUEST_URI']);
+    $response = $response->withHeader("Location", $this->router->pathFor("logout"));
     return $response;
 });
 
@@ -81,7 +150,7 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
     $subtasks->execute(array(":pid" => $pid));
     $subtasks = $subtasks->fetchAll();
     foreach($subtasks as &$subtask) {
-        $tcids = array_map(intval, explode(",", substr($subtask["testcaseids"], 1, -1)));
+        $tcids = array_map("intval", explode(",", substr($subtask["testcaseids"], 1, -1)));
         sort($tcids);
         $subtask["testcaseids"] = implode(", ", $tcids);
     }
@@ -98,6 +167,14 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
         )
     );
 })->setName("problem");
+$app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    // TODO implement submit
+    $this->messages[] = "Submit is not implemented";
+    $pid = $args["pid"];
+    $response = $response->withStatus(303);
+    $response = $response->withHeader("Location", $this->router->pathFor("problem", array("pid" => $pid)));
+    return $response;
+});
 
 $app->get("/problems/new", function (Request $request, Response $response) {
     return $response;
