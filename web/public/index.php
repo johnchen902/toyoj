@@ -22,8 +22,8 @@ $container["view"] = function ($container) {
     $basePath = rtrim(str_ireplace("index.php", "", $container["request"]->getUri()->getBasePath()), "/");
     $view->addExtension(new Slim\Views\TwigExtension($container["router"], $basePath));
     $view->getEnvironment()->addFilter(new Twig_Filter('markdown', function($string) {
-        return Parsedown::instance()->text($string);
-    }, array("pre_escape" => "html", "is_safe" => array("html"))));
+        return Parsedown::instance()->setMarkupEscaped(true)->text($string);
+    }, array("is_safe" => array("html"))));
     $view["login"] = $container->session["login"] ?? 0;
     $view["messages"] = $container->messages;
     return $view;
