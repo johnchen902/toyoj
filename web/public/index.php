@@ -198,6 +198,7 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
     $login = $this->session["login"] ?? false;
     $language = $request->getParsedBodyParam("language");
     $code = $request->getParsedBodyParam("code");
+    $code = str_replace("\r\n", "\n", $code);
 
     if(!$login) {
         $this->messages[] = "You must login to submit.";
