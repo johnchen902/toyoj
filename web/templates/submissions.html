@@ -20,8 +20,8 @@
       <td><a href="{{ path_for('submission', { 'sid': subm.sid }) }}">{{ subm.sid }}</a></td>
       <td><a href="{{ path_for('problem', { 'pid': subm.pid }) }}">{{ subm.title }}</a></td>
       <td><a href="{{ path_for('user', {'uid': subm.submitter }) }}">{{ subm.submitter_name }}</a></td>
-      <td>{{ subm.accepted ? "Yes" : (subm.rejected ? "No" : "Unsure") }}</td>
-      <td>{% if subm.minscore == subm.maxscore %}{{ subm.minscore }}{% else %}({{ subm.minscore }} &ndash; {{subm.maxscore}}){% endif %} / {{ subm.fullscore }}</td>
+      <td>{% if not subm.accepted is null %}{{ subm.accepted ? "Yes" : (subm.rejected ? "No" : "Unsure") }}{% endif %}</td>
+      <td>{% if not subm.fullscore is null %}{% if subm.minscore == subm.maxscore %}{{ subm.minscore }}{% else %}({{ subm.minscore }} &ndash; {{subm.maxscore}}){% endif %} / {{ subm.fullscore }}{% endif %}</td>
       <td>{% if not subm.time is null %}{{ subm.time }} ms {% endif %}</td>
       <td>{% if not subm.memory is null %}{{ subm.memory }} KiB{% endif %}</td>
       <td>{{ subm.language }}</td>

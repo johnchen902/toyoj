@@ -585,18 +585,18 @@ CREATE RULE "_RETURN" AS
     t.minscore,
     t.maxscore,
     t.fullscore
-   FROM submissions s,
-    problems p,
-    users u,
-    ( SELECT results_view.sid,
+   FROM ((((submissions s
+     JOIN problems p USING (pid))
+     JOIN users u ON ((s.submitter = u.uid)))
+     LEFT JOIN ( SELECT results_view.sid,
             every((results_view.accepted IS TRUE)) AS accepted,
             bool_or((results_view.accepted IS FALSE)) AS rejected,
             max(results_view."time") AS "time",
             max(results_view.memory) AS memory,
             max(results_view.judge_time) AS judge_time
            FROM results_view
-          GROUP BY results_view.sid) r,
-    ( SELECT subtask_results_view.sid,
+          GROUP BY results_view.sid) r USING (sid))
+     LEFT JOIN ( SELECT subtask_results_view.sid,
             sum(
                 CASE
                     WHEN subtask_results_view.accepted THEN subtasks.score
@@ -610,8 +610,7 @@ CREATE RULE "_RETURN" AS
             sum(subtasks.score) AS fullscore
            FROM (subtask_results_view
              JOIN subtasks USING (subtaskid))
-          GROUP BY subtask_results_view.sid) t
-  WHERE ((s.pid = p.pid) AND (s.submitter = u.uid) AND (s.sid = r.sid) AND (s.sid = t.sid));
+          GROUP BY subtask_results_view.sid) t USING (sid));
 
 
 --
@@ -811,10 +810,31 @@ GRANT SELECT ON TABLE problems TO toyojweb;
 
 
 --
+-- Name: submissions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,INSERT ON TABLE submissions TO toyojweb;
+
+
+--
 -- Name: testcases; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT SELECT ON TABLE testcases TO toyojweb;
+
+
+--
+-- Name: results_view; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE results_view TO toyojweb;
+
+
+--
+-- Name: submissions_sid_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT USAGE ON SEQUENCE submissions_sid_seq TO toyojweb;
 
 
 --

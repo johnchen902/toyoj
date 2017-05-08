@@ -194,10 +194,46 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
     );
 })->setName("problem");
 $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    // TODO implement submit
-    $this->messages[] = "Submit is not implemented";
     $pid = $args["pid"];
-    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    $login = $this->session["login"] ?? false;
+    $language = $request->getParsedBodyParam("language");
+    $code = $request->getParsedBodyParam("code");
+
+    if(!$login) {
+        $this->messages[] = "You must login to submit.";
+        return redirect($response, 303, $this->router->pathFor("login"));
+    }
+    if(!$code) {
+        $this->messages[] = "Code is empty.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+    if(strlen(code) > 65536) { // XXX magic number
+        $this->messages[] = "Code must not be longer than 65536 bytes.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+
+    $problem = $this->db->prepare("SELECT manager, ready FROM problems WHERE pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
+    if(!$problem) {
+        $this->messages[] = "No Such Problem.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+    if(!$problem["ready"] && $problem["manager"] !== $login) {
+        $this->messages[] = "This problem is not ready for submission.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+
+    $sid = $this->db->prepare("INSERT INTO submissions(pid, submitter, language, code) VALUES (:pid, :submitter, :language, :code) RETURNING sid");
+    $sid->execute(array(":pid" => $pid, ":submitter" => $login, ":language" => $language, ":code" => $code));
+    $sid = $sid->fetch();
+    if(!$sid) {
+        $this->messages[] = "I'm not sure what's happening...";
+        return redirect($response, 303, $this->router->pathFor("submission-list"));
+    }
+    $sid = $sid["sid"];
+
+    return redirect($response, 303, $this->router->pathFor("submission", array("sid" => $sid)));
 });
 
 $app->get("/problems/new", function (Request $request, Response $response) {
