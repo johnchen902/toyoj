@@ -5,6 +5,14 @@
 {{ parent() }}  <!-- specific to /problem/{pid}/ -->
   <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML"></script>
 {% endblock %}
+
+{% block nav %}
+{{ parent() }}    <!-- specific to /problem/{pid}/ -->
+{% if login == problem.manager %}
+    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
+{% endif %}
+{% endblock %}
+
 {% block content %}
   <h2>{{ problem.title }}</h2>
   {{ problem.statement|markdown }}

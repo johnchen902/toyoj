@@ -1,0 +1,72 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% set canedit = login == problem.manager %}
+
+{% block title %}Edit {{ problem.title }} - {{ parent() }}{% endblock %}
+
+{% block nav %}
+{{ parent() }}    <!-- specific to /problem/{pid}/edit -->
+    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+{% endblock %}
+
+{% block content %}
+  <h2>Edit {{ problem.title }}</h2>
+{% if not canedit %}
+  <div class="message">
+    You cannot edit this problem.
+  </div>
+{% endif %}
+  <form method="post"><fieldset{% if not canedit %} disabled{% endif %}>
+    <div>
+      <label>
+        Title: <input type="text" name="title" value="{{ problem.title }}">
+      </label>
+    </div>
+    <div>
+      <label>
+        Statement:
+        <textarea name="statement" cols="80" rows="22" wrap="off">{{ problem.statement }}</textarea>
+      </label>
+    </div>
+    <div>
+      <label>
+        <input type="checkbox" name="ready" value="ready"{% if problem.ready %} checked{% endif %}> Ready for submission
+      </label>
+    </div>
+    <div>
+      <input type="submit" value="Save">
+    </div>
+  </fieldset></form>
+  <h3>Subtasks</h3>
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Score</th>
+      <th>Test Cases</th>
+    </tr>
+{% for subt in subtasks %}
+    <tr>
+      <td>{{ subt.subtaskid }}</td>
+      <td>{{ subt.score }}</td>
+      <td>{{ subt.testcaseids }}</td>
+    </tr>
+{% endfor %}
+  </table>
+  <h3>Test Cases</h3>
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Time</th>
+      <th>Memory</th>
+      <th>Checker</th>
+    </tr>
+{% for case in testcases %}
+    <tr>
+      <td><a href="{{ path_for('edit-test', { 'pid': problem.pid, 'testid': case.testcaseid }) }}">{{ case.testcaseid }}</a></td>
+      <td>{{ case.time_limit }} ms</td>
+      <td>{{ case.memory_limit }} KiB</td>
+      <td>{{ case.checker }}</td>
+    </tr>
+{% endfor %}
+  </table>
+{% endblock %}

@@ -245,12 +245,65 @@ $app->post("/problems/new", function (Request $request, Response $response) {
     return $response;
 });
 
-$app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return $response;
+$app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
+    if(!$problem) {
+        return ($this->errorview)($response, 404, "No Such Problem");
+    }
+
+    $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
+    $subtasks->execute(array(":pid" => $pid));
+    $subtasks = $subtasks->fetchAll();
+    foreach($subtasks as &$subtask) {
+        $tcids = array_map("intval", explode(",", substr($subtask["testcaseids"], 1, -1)));
+        sort($tcids);
+        $subtask["testcaseids"] = implode(", ", $tcids);
+    }
+
+    $testcases = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid ORDER BY testcaseid");
+    $testcases->execute(array(":pid" => $pid));
+    $testcases = $testcases->fetchAll();
+
+    return $this->view->render($response, "problem-edit.html",
+        array(
+            "problem" => $problem,
+            "subtasks" => $subtasks,
+            "testcases" => $testcases,
+        )
+    );
 })->setName("edit-problem");
 
-$app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return $response;
+$app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $login = $this->session["login"];
+    $title = $request->getParsedBodyParam("title");
+    $statement = $request->getParsedBodyParam("statement");
+    $ready = $request->getParsedBodyParam("ready");
+
+    $statement = str_replace("\r\n", "\n", $statement);
+    $ready = $ready === "ready" ? "t" : "f";
+
+    if(!$title) {
+        $this->messages[] = "Title is empty.";
+        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
+    }
+    if(!$statement) {
+        $this->messages[] = "Statement is empty.";
+        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
+    }
+
+    $stmt = $this->db->prepare("UPDATE problems SET (title, statement, ready) = (:title, :statement, :ready) WHERE pid = :pid AND manager = :user");
+    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":ready" => $ready, ":pid" => $pid, ":user" => $login));
+    if(!$stmt->rowCount()) {
+        $this->messages[] = "Update failed. Perhaps the problem doesn't exists or you don't have sufficient permission.";
+        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
+    }
+
+    $this->messages[] = "Problem edited.";
+    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response) {

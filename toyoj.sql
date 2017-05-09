@@ -806,7 +806,7 @@ GRANT SELECT ON TABLE passwords TO toyojweb;
 -- Name: problems; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE problems TO toyojweb;
+GRANT SELECT,UPDATE ON TABLE problems TO toyojweb;
 
 
 --
