@@ -338,15 +338,97 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $re
             "testcase" => $testcase
         )
     );
-    return $response;
 })->setName("test");
 
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return $response;
+$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $testcaseid = $args["testid"];
+
+    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
+    if(!$problem) {
+        return ($this->errorview)($response, 404, "No Such Problem");
+    }
+
+    $testcase = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker, input, output FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
+    $testcase = $testcase->fetch();
+    if(!$testcase) {
+        return ($this->errorview)($response, 404, "No Such Test Case");
+    }
+
+    return $this->view->render($response, "testcase-edit.html",
+        array(
+            "problem" => $problem,
+            "testcase" => $testcase
+        )
+    );
 })->setName("edit-test");
 
-$app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return $response;
+$app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $testid = $args["testid"];
+    $login = $this->session["login"];
+    $time_limit = (int) $request->getParsedBodyParam("time_limit");
+    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
+    $checker = $request->getParsedBodyParam("checker");
+    $input = $request->getParsedBodyParam("input");
+    $output = $request->getParsedBodyParam("output");
+
+    $input = str_replace("\r\n", "\n", $input);
+    $output = str_replace("\r\n", "\n", $output);
+
+    $valid = true;
+    if($time_limit < 100 || $time_limit > 15000) {
+        $this->messages[] = "Time limit is out of range [100 ms, 15000 ms].";
+        $valid = false;
+    }
+    if($memory_limit < 8192 || $memory_limit > 1048576) {
+        $this->messages[] = "Memory limit is out of range [8192 KiB, 1048576 KiB].";
+        $valid = false;
+    }
+    if(!$input) {
+        $this->messages[] = "Input is empty.";
+        $valid = false;
+    } else if(strlen($input) > 16 << 20) {
+        $this->messages[] = "Input is longer than 16 MiB.";
+        $valid = false;
+    }
+    if(!$output) {
+        $this->messages[] = "Output is empty.";
+        $valid = false;
+    } else if(strlen($output) > 16 << 20) {
+        $this->messages[] = "Output is longer than 16 MiB.";
+        $valid = false;
+    }
+    if(!$valid) {
+        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
+    }
+
+    $stmt = $this->db->prepare("UPDATE testcases t SET (time_limit, memory_limit, checker, input, output) = (:time_limit, :memory_limit, :checker, :input, :output) FROM problems p WHERE t.pid = :pid AND t.testcaseid = :testcaseid AND t.pid = p.pid AND p.manager = :user");
+    try {
+        $stmt->execute(array(
+            ":time_limit" => $time_limit,
+            ":memory_limit" => $memory_limit,
+            ":checker" => $checker,
+            ":input" => $input,
+            ":output" => $output,
+            ":pid" => $pid,
+            ":testcaseid" => $testid,
+            ":user" => $login,
+        ));
+    } catch (PDOException $e) {
+        $this->messages[] = "Update failed. Perhaps the checker doesn't exists.";
+        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
+    }
+    if(!$stmt->rowCount()) {
+        $this->messages[] = "Update failed. Perhaps the problem or test case doesn't exists or you don't have sufficient permission.";
+        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
+    }
+
+    $this->messages[] = "Test case edited.";
+    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
 });
 
 $app->get("/signup", function (Request $request, Response $response) {
