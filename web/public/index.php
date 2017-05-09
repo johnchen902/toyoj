@@ -253,10 +253,6 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
     return $response;
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response) {
-    return $response;
-})->setName("test-list");
-
 $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response) {
     return $response;
 })->setName("new-test");
@@ -265,7 +261,30 @@ $app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Respo
     return $response;
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response) {
+$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $testcaseid = $args["testid"];
+
+    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
+    if(!$problem) {
+        return ($this->errorview)($response, 404, "No Such Problem");
+    }
+
+    $testcase = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker, input, output FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
+    $testcase = $testcase->fetch();
+    if(!$testcase) {
+        return ($this->errorview)($response, 404, "No Such Test Case");
+    }
+
+    return $this->view->render($response, "testcase.html",
+        array(
+            "problem" => $problem,
+            "testcase" => $testcase
+        )
+    );
     return $response;
 })->setName("test");
 

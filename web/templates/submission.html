@@ -56,7 +56,7 @@
     </tr>
 {% for case in testcases %}
     <tr>
-      <td>{{ case.testcaseid }}</td>
+      <td><a href="{{ path_for('test', { 'pid': subm.pid, 'testid': case.testcaseid }) }}">{{ case.testcaseid }}</a></td>
       <td>{{ case.accepted is null ? "" : (case.accepted ? "Yes" : "No") }}</td>
       <td>{{ case.verdict }}</td>
       <td>{% if not case.time is null %}{{ case.time }} ms {% endif %}</td>
