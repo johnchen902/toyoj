@@ -2,12 +2,12 @@
 {% extends "base.html" %}
 {% block title %}{{ problem.title }} - {{ parent() }}{% endblock %}
 {% block head %}
-{{ parent() }}  <!-- specific to /problem/{pid}/ -->
+{{ parent() }}{##}
   <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML"></script>
 {% endblock %}
 
 {% block nav %}
-{{ parent() }}    <!-- specific to /problem/{pid}/ -->
+{{ parent() }}{##}
 {% if login == problem.manager %}
     <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
 {% endif %}

@@ -5,7 +5,7 @@
 {% block title %}Edit {{ problem.title }} - {{ parent() }}{% endblock %}
 
 {% block nav %}
-{{ parent() }}    <!-- specific to /problem/{pid}/edit -->
+{{ parent() }}{##}
     <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
 {% endblock %}
 
