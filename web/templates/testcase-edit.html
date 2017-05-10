@@ -1,16 +1,16 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set canedit = login == problem.manager %}
+{% set canedit = login == testcase.manager %}
 
-{% block title %}Edit Test Case #{{ testcase.testcaseid }} of {{ problem.title }} - {{ parent() }}{% endblock %}
+{% block title %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
 
 {% block nav %}
 {{ parent() }}{##}
-    <a href="{{ path_for('test', { 'pid': problem.pid, 'testid': testcase.testcaseid }) }}">View Test Case</a>
+    <a href="{{ path_for('test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">View Test Case</a>
 {% endblock %}
 
 {% block content %}
-  <h2>Edit Test Case #{{ testcase.testcaseid }} of {{ problem.title }}</h2>
+  <h2>Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}</h2>
 {% if not canedit %}
   <div class="message">
     You cannot edit this test case.

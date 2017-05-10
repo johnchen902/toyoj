@@ -48,7 +48,6 @@ CREATE TABLE checkers (
 --
 
 CREATE TABLE judgers (
-    pid integer NOT NULL,
     testcaseid integer NOT NULL,
     sid integer NOT NULL,
     judge_name character varying(32) NOT NULL
@@ -112,7 +111,6 @@ ALTER SEQUENCE problems_pid_seq OWNED BY problems.pid;
 --
 
 CREATE TABLE results (
-    pid integer NOT NULL,
     testcaseid integer NOT NULL,
     sid integer NOT NULL,
     accepted boolean NOT NULL,
@@ -148,7 +146,9 @@ CREATE TABLE testcases (
     output text NOT NULL,
     time_limit integer NOT NULL,
     memory_limit integer NOT NULL,
-    checker character varying(32) NOT NULL
+    checker character varying(32) NOT NULL,
+    CONSTRAINT testcases_memory_limit_check CHECK ((memory_limit >= 4)),
+    CONSTRAINT testcases_time_limit_check CHECK ((time_limit >= 1))
 );
 
 
@@ -167,9 +167,8 @@ CREATE VIEW results_view AS
     judgers.judge_name
    FROM (((submissions
      JOIN testcases USING (pid))
-     LEFT JOIN results USING (pid, testcaseid, sid))
-     LEFT JOIN judgers USING (pid, testcaseid, sid))
-  ORDER BY ROW(submissions.sid, testcases.testcaseid);
+     LEFT JOIN results USING (sid, testcaseid))
+     LEFT JOIN judgers USING (sid, testcaseid));
 
 
 --
@@ -192,47 +191,6 @@ ALTER SEQUENCE submissions_sid_seq OWNED BY submissions.sid;
 
 
 --
--- Name: submissions_view; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE submissions_view (
-    sid integer,
-    pid integer,
-    title character varying(128),
-    submitter integer,
-    submitter_name character varying(32),
-    language character varying(32),
-    code text,
-    submit_time timestamp with time zone,
-    accepted boolean,
-    rejected boolean,
-    "time" integer,
-    memory integer,
-    judge_time timestamp with time zone,
-    minscore bigint,
-    maxscore bigint,
-    fullscore bigint
-);
-
-ALTER TABLE ONLY submissions_view REPLICA IDENTITY NOTHING;
-
-
---
--- Name: subtask_results_view; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE subtask_results_view (
-    sid integer,
-    subtaskid integer,
-    accepted boolean,
-    rejected boolean,
-    pid integer
-);
-
-ALTER TABLE ONLY subtask_results_view REPLICA IDENTITY NOTHING;
-
-
---
 -- Name: subtasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -244,50 +202,29 @@ CREATE TABLE subtasks (
 
 
 --
--- Name: subtask_results_view_2; Type: VIEW; Schema: public; Owner: -
---
-
-CREATE VIEW subtask_results_view_2 AS
- SELECT subtask_results_view.sid,
-    subtask_results_view.subtaskid,
-    subtask_results_view.accepted,
-    subtask_results_view.rejected,
-        CASE
-            WHEN subtask_results_view.accepted THEN subtasks.score
-            ELSE 0
-        END AS minscore,
-        CASE
-            WHEN subtask_results_view.rejected THEN 0
-            ELSE subtasks.score
-        END AS maxscore,
-    subtasks.score AS fullscore
-   FROM (subtask_results_view
-     JOIN subtasks USING (pid, subtaskid));
-
-
---
--- Name: subtasks_view; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE subtasks_view (
-    pid integer,
-    subtaskid integer,
-    score integer,
-    testcaseids integer[]
-);
-
-ALTER TABLE ONLY subtasks_view REPLICA IDENTITY NOTHING;
-
-
---
 -- Name: subtasktestcases; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE subtasktestcases (
-    pid integer NOT NULL,
     subtaskid integer NOT NULL,
     testcaseid integer NOT NULL
 );
+
+
+--
+-- Name: subtask_results_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW subtask_results_view AS
+ SELECT submissions.sid,
+    subtasks.subtaskid,
+    every((results.accepted IS TRUE)) AS accepted,
+    bool_or((results.accepted IS FALSE)) AS rejected
+   FROM (((submissions
+     JOIN subtasks USING (pid))
+     JOIN subtasktestcases USING (subtaskid))
+     LEFT JOIN results USING (sid, testcaseid))
+  GROUP BY submissions.sid, subtasks.subtaskid;
 
 
 --
@@ -302,274 +239,11 @@ CREATE TABLE users (
 
 
 --
--- Name: users_uid_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: submissions_view; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE users_uid_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: users_uid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE users_uid_seq OWNED BY users.uid;
-
-
---
--- Name: problems pid; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY problems ALTER COLUMN pid SET DEFAULT nextval('problems_pid_seq'::regclass);
-
-
---
--- Name: submissions sid; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY submissions ALTER COLUMN sid SET DEFAULT nextval('submissions_sid_seq'::regclass);
-
-
---
--- Name: users uid; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY users ALTER COLUMN uid SET DEFAULT nextval('users_uid_seq'::regclass);
-
-
---
--- Data for Name: checkers; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY checkers (name) FROM stdin;
-exact
-\.
-
-
---
--- Data for Name: judgers; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY judgers (pid, testcaseid, sid, judge_name) FROM stdin;
-\.
-
-
---
--- Data for Name: languages; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY languages (name) FROM stdin;
-C++14
-\.
-
-
---
--- Data for Name: passwords; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY passwords (uid, hash) FROM stdin;
-\.
-
-
---
--- Data for Name: problems; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY problems (pid, statement, title, create_date, manager, ready) FROM stdin;
-\.
-
-
---
--- Name: problems_pid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('problems_pid_seq', 1, false);
-
-
---
--- Data for Name: results; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY results (pid, testcaseid, sid, accepted, "time", memory, judge_time, verdict) FROM stdin;
-\.
-
-
---
--- Data for Name: submissions; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY submissions (sid, submitter, language, code, submit_time, pid) FROM stdin;
-\.
-
-
---
--- Name: submissions_sid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('submissions_sid_seq', 1, false);
-
-
---
--- Data for Name: subtasks; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY subtasks (pid, subtaskid, score) FROM stdin;
-\.
-
-
---
--- Data for Name: subtasktestcases; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY subtasktestcases (pid, subtaskid, testcaseid) FROM stdin;
-\.
-
-
---
--- Data for Name: testcases; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY testcases (pid, testcaseid, input, output, time_limit, memory_limit, checker) FROM stdin;
-\.
-
-
---
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
---
-
-COPY users (uid, username, register_date) FROM stdin;
-\.
-
-
---
--- Name: users_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
---
-
-SELECT pg_catalog.setval('users_uid_seq', 1, false);
-
-
---
--- Name: checkers checkers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY checkers
-    ADD CONSTRAINT checkers_pkey PRIMARY KEY (name);
-
-
---
--- Name: judgers judging_results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY judgers
-    ADD CONSTRAINT judging_results_pkey PRIMARY KEY (pid, testcaseid, sid);
-
-
---
--- Name: languages languages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY languages
-    ADD CONSTRAINT languages_pkey PRIMARY KEY (name);
-
-
---
--- Name: passwords passwords_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY passwords
-    ADD CONSTRAINT passwords_pkey PRIMARY KEY (uid);
-
-
---
--- Name: problems problems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY problems
-    ADD CONSTRAINT problems_pkey PRIMARY KEY (pid);
-
-
---
--- Name: problems problems_title_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY problems
-    ADD CONSTRAINT problems_title_key UNIQUE (title);
-
-
---
--- Name: results results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY results
-    ADD CONSTRAINT results_pkey PRIMARY KEY (pid, testcaseid, sid);
-
-
---
--- Name: submissions submissions_pid_sid_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY submissions
-    ADD CONSTRAINT submissions_pid_sid_key UNIQUE (pid, sid);
-
-
---
--- Name: submissions submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY submissions
-    ADD CONSTRAINT submissions_pkey PRIMARY KEY (sid);
-
-
---
--- Name: subtasks subtasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY subtasks
-    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (pid, subtaskid);
-
-
---
--- Name: subtasktestcases subtasktestcases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY subtasktestcases
-    ADD CONSTRAINT subtasktestcases_pkey PRIMARY KEY (pid, subtaskid, testcaseid);
-
-
---
--- Name: testcases testcases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY testcases
-    ADD CONSTRAINT testcases_pkey PRIMARY KEY (pid, testcaseid);
-
-
---
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (uid);
-
-
---
--- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY users
-    ADD CONSTRAINT users_username_key UNIQUE (username);
-
-
---
--- Name: submissions_view _RETURN; Type: RULE; Schema: public; Owner: -
---
-
-CREATE RULE "_RETURN" AS
-    ON SELECT TO submissions_view DO INSTEAD  SELECT s.sid,
+CREATE VIEW submissions_view AS
+ SELECT s.sid,
     s.pid,
     p.title,
     s.submitter,
@@ -614,19 +288,360 @@ CREATE RULE "_RETURN" AS
 
 
 --
--- Name: subtask_results_view _RETURN; Type: RULE; Schema: public; Owner: -
+-- Name: subtask_results_view_2; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE RULE "_RETURN" AS
-    ON SELECT TO subtask_results_view DO INSTEAD  SELECT submissions.sid,
-    subtasktestcases.subtaskid,
-    every((results.accepted IS TRUE)) AS accepted,
-    bool_or((results.accepted IS FALSE)) AS rejected,
-    submissions.pid
-   FROM ((submissions
-     JOIN subtasktestcases USING (pid))
-     LEFT JOIN results USING (sid, testcaseid))
-  GROUP BY submissions.sid, subtasktestcases.subtaskid;
+CREATE VIEW subtask_results_view_2 AS
+ SELECT subtask_results_view.sid,
+    subtask_results_view.subtaskid,
+    subtask_results_view.accepted,
+    subtask_results_view.rejected,
+        CASE
+            WHEN subtask_results_view.accepted THEN subtasks.score
+            ELSE 0
+        END AS minscore,
+        CASE
+            WHEN subtask_results_view.rejected THEN 0
+            ELSE subtasks.score
+        END AS maxscore,
+    subtasks.score AS fullscore
+   FROM (subtask_results_view
+     JOIN subtasks USING (subtaskid));
+
+
+--
+-- Name: subtasks_subtaskid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE subtasks_subtaskid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: subtasks_subtaskid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE subtasks_subtaskid_seq OWNED BY subtasks.subtaskid;
+
+
+--
+-- Name: subtasks_view; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE subtasks_view (
+    subtaskid integer,
+    score integer,
+    testcaseids integer[],
+    pid integer
+);
+
+ALTER TABLE ONLY subtasks_view REPLICA IDENTITY NOTHING;
+
+
+--
+-- Name: testcases_testcaseid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE testcases_testcaseid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: testcases_testcaseid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE testcases_testcaseid_seq OWNED BY testcases.testcaseid;
+
+
+--
+-- Name: users_uid_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE users_uid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: users_uid_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE users_uid_seq OWNED BY users.uid;
+
+
+--
+-- Name: problems pid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY problems ALTER COLUMN pid SET DEFAULT nextval('problems_pid_seq'::regclass);
+
+
+--
+-- Name: submissions sid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY submissions ALTER COLUMN sid SET DEFAULT nextval('submissions_sid_seq'::regclass);
+
+
+--
+-- Name: subtasks subtaskid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY subtasks ALTER COLUMN subtaskid SET DEFAULT nextval('subtasks_subtaskid_seq'::regclass);
+
+
+--
+-- Name: testcases testcaseid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY testcases ALTER COLUMN testcaseid SET DEFAULT nextval('testcases_testcaseid_seq'::regclass);
+
+
+--
+-- Name: users uid; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY users ALTER COLUMN uid SET DEFAULT nextval('users_uid_seq'::regclass);
+
+
+--
+-- Data for Name: checkers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY checkers (name) FROM stdin;
+exact
+\.
+
+
+--
+-- Data for Name: judgers; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY judgers (testcaseid, sid, judge_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: languages; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY languages (name) FROM stdin;
+C++14
+\.
+
+
+--
+-- Data for Name: passwords; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY passwords (uid, hash) FROM stdin;
+\.
+
+
+--
+-- Data for Name: problems; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY problems (pid, statement, title, create_date, manager, ready) FROM stdin;
+\.
+
+
+--
+-- Name: problems_pid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('problems_pid_seq', 1, false);
+
+
+--
+-- Data for Name: results; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY results (testcaseid, sid, accepted, "time", memory, judge_time, verdict) FROM stdin;
+\.
+
+
+--
+-- Data for Name: submissions; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY submissions (sid, submitter, language, code, submit_time, pid) FROM stdin;
+\.
+
+
+--
+-- Name: submissions_sid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('submissions_sid_seq', 1, false);
+
+
+--
+-- Data for Name: subtasks; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY subtasks (pid, subtaskid, score) FROM stdin;
+\.
+
+
+--
+-- Name: subtasks_subtaskid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('subtasks_subtaskid_seq', 1, false);
+
+
+--
+-- Data for Name: subtasktestcases; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY subtasktestcases (subtaskid, testcaseid) FROM stdin;
+\.
+
+
+--
+-- Data for Name: testcases; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY testcases (pid, testcaseid, input, output, time_limit, memory_limit, checker) FROM stdin;
+\.
+
+
+--
+-- Name: testcases_testcaseid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('testcases_testcaseid_seq', 1, false);
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY users (uid, username, register_date) FROM stdin;
+\.
+
+
+--
+-- Name: users_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: -
+--
+
+SELECT pg_catalog.setval('users_uid_seq', 1, false);
+
+
+--
+-- Name: checkers checkers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY checkers
+    ADD CONSTRAINT checkers_pkey PRIMARY KEY (name);
+
+
+--
+-- Name: judgers judgers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY judgers
+    ADD CONSTRAINT judgers_pkey PRIMARY KEY (sid, testcaseid);
+
+
+--
+-- Name: languages languages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY languages
+    ADD CONSTRAINT languages_pkey PRIMARY KEY (name);
+
+
+--
+-- Name: passwords passwords_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY passwords
+    ADD CONSTRAINT passwords_pkey PRIMARY KEY (uid);
+
+
+--
+-- Name: problems problems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY problems
+    ADD CONSTRAINT problems_pkey PRIMARY KEY (pid);
+
+
+--
+-- Name: problems problems_title_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY problems
+    ADD CONSTRAINT problems_title_key UNIQUE (title);
+
+
+--
+-- Name: results results_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY results
+    ADD CONSTRAINT results_pkey PRIMARY KEY (sid, testcaseid);
+
+
+--
+-- Name: submissions submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY submissions
+    ADD CONSTRAINT submissions_pkey PRIMARY KEY (sid);
+
+
+--
+-- Name: subtasks subtasks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY subtasks
+    ADD CONSTRAINT subtasks_pkey PRIMARY KEY (subtaskid);
+
+
+--
+-- Name: subtasktestcases subtasktestcases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY subtasktestcases
+    ADD CONSTRAINT subtasktestcases_pkey PRIMARY KEY (subtaskid, testcaseid);
+
+
+--
+-- Name: testcases testcases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY testcases
+    ADD CONSTRAINT testcases_pkey PRIMARY KEY (testcaseid);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (uid);
+
+
+--
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT users_username_key UNIQUE (username);
 
 
 --
@@ -634,45 +649,29 @@ CREATE RULE "_RETURN" AS
 --
 
 CREATE RULE "_RETURN" AS
-    ON SELECT TO subtasks_view DO INSTEAD  SELECT subtasks.pid,
-    subtasks.subtaskid,
+    ON SELECT TO subtasks_view DO INSTEAD  SELECT subtasks.subtaskid,
     subtasks.score,
-    array_agg(subtasktestcases.testcaseid) AS testcaseids
+    array_agg(subtasktestcases.testcaseid) AS testcaseids,
+    subtasks.pid
    FROM (subtasks
-     LEFT JOIN subtasktestcases USING (pid, subtaskid))
-  GROUP BY subtasks.pid, subtasks.subtaskid;
+     LEFT JOIN subtasktestcases USING (subtaskid))
+  GROUP BY subtasks.subtaskid;
 
 
 --
--- Name: judgers judging_results_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY judgers
-    ADD CONSTRAINT judging_results_pid_fkey FOREIGN KEY (pid) REFERENCES problems(pid);
-
-
---
--- Name: judgers judging_results_pid_fkey1; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: judgers judgers_sid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY judgers
-    ADD CONSTRAINT judging_results_pid_fkey1 FOREIGN KEY (pid, testcaseid) REFERENCES testcases(pid, testcaseid);
+    ADD CONSTRAINT judgers_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
 
 
 --
--- Name: judgers judging_results_pid_fkey2; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY judgers
-    ADD CONSTRAINT judging_results_pid_fkey2 FOREIGN KEY (pid, sid) REFERENCES submissions(pid, sid);
-
-
---
--- Name: judgers judging_results_sid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: judgers judgers_testcaseid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY judgers
-    ADD CONSTRAINT judging_results_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
+    ADD CONSTRAINT judgers_testcaseid_fkey FOREIGN KEY (testcaseid) REFERENCES testcases(testcaseid);
 
 
 --
@@ -692,35 +691,19 @@ ALTER TABLE ONLY problems
 
 
 --
--- Name: results results_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY results
-    ADD CONSTRAINT results_pid_fkey FOREIGN KEY (pid) REFERENCES problems(pid);
-
-
---
--- Name: results results_pid_fkey1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY results
-    ADD CONSTRAINT results_pid_fkey1 FOREIGN KEY (pid, testcaseid) REFERENCES testcases(pid, testcaseid);
-
-
---
--- Name: results results_pid_fkey2; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY results
-    ADD CONSTRAINT results_pid_fkey2 FOREIGN KEY (pid, sid) REFERENCES submissions(pid, sid);
-
-
---
 -- Name: results results_sid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY results
     ADD CONSTRAINT results_sid_fkey FOREIGN KEY (sid) REFERENCES submissions(sid);
+
+
+--
+-- Name: results results_testcaseid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY results
+    ADD CONSTRAINT results_testcaseid_fkey FOREIGN KEY (testcaseid) REFERENCES testcases(testcaseid);
 
 
 --
@@ -756,27 +739,19 @@ ALTER TABLE ONLY subtasks
 
 
 --
--- Name: subtasktestcases subtasktestcases_pid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subtasktestcases subtasktestcases_subtaskid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY subtasktestcases
-    ADD CONSTRAINT subtasktestcases_pid_fkey FOREIGN KEY (pid) REFERENCES problems(pid);
+    ADD CONSTRAINT subtasktestcases_subtaskid_fkey FOREIGN KEY (subtaskid) REFERENCES subtasks(subtaskid);
 
 
 --
--- Name: subtasktestcases subtasktestcases_pid_fkey1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY subtasktestcases
-    ADD CONSTRAINT subtasktestcases_pid_fkey1 FOREIGN KEY (pid, subtaskid) REFERENCES subtasks(pid, subtaskid);
-
-
---
--- Name: subtasktestcases subtasktestcases_pid_fkey2; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: subtasktestcases subtasktestcases_testcaseid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY subtasktestcases
-    ADD CONSTRAINT subtasktestcases_pid_fkey2 FOREIGN KEY (pid, testcaseid) REFERENCES testcases(pid, testcaseid);
+    ADD CONSTRAINT subtasktestcases_testcaseid_fkey FOREIGN KEY (testcaseid) REFERENCES testcases(testcaseid);
 
 
 --
@@ -820,7 +795,7 @@ GRANT SELECT,INSERT ON TABLE submissions TO toyojweb;
 -- Name: testcases; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE testcases TO toyojweb;
+GRANT SELECT,UPDATE ON TABLE testcases TO toyojweb;
 
 
 --
@@ -835,6 +810,13 @@ GRANT SELECT ON TABLE results_view TO toyojweb;
 --
 
 GRANT USAGE ON SEQUENCE submissions_sid_seq TO toyojweb;
+
+
+--
+-- Name: users; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE users TO toyojweb;
 
 
 --
@@ -856,13 +838,6 @@ GRANT SELECT ON TABLE subtask_results_view_2 TO toyojweb;
 --
 
 GRANT SELECT ON TABLE subtasks_view TO toyojweb;
-
-
---
--- Name: users; Type: ACL; Schema: public; Owner: -
---
-
-GRANT SELECT ON TABLE users TO toyojweb;
 
 
 --

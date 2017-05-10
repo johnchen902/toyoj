@@ -318,23 +318,15 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $re
     $pid = $args["pid"];
     $testcaseid = $args["testid"];
 
-    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-
-    $testcase = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker, input, output FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
     $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
     $testcase = $testcase->fetch();
     if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Test Case");
+        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
 
     return $this->view->render($response, "testcase.html",
         array(
-            "problem" => $problem,
             "testcase" => $testcase
         )
     );
@@ -344,23 +336,15 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
     $pid = $args["pid"];
     $testcaseid = $args["testid"];
 
-    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-
-    $testcase = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker, input, output FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
     $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
     $testcase = $testcase->fetch();
     if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Test Case");
+        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
 
     return $this->view->render($response, "testcase-edit.html",
         array(
-            "problem" => $problem,
             "testcase" => $testcase
         )
     );
