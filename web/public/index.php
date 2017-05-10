@@ -344,7 +344,7 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $re
     if(!$testcase) {
         return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
-    $testcase["canedit"] = $this->permissions->checkEditTestCase($pid, $testcaseid);
+    $testcase["canedit"] = $this->permissions->checkEditTestCase($testcaseid);
 
     return $this->view->render($response, "testcase.html",
             array("testcase" => $testcase));
@@ -360,7 +360,7 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
     if(!$testcase) {
         return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
-    $testcase["canedit"] = $this->permissions->checkEditTestCase($pid, $testcaseid);
+    $testcase["canedit"] = $this->permissions->checkEditTestCase($testcaseid);
 
     return $this->view->render($response, "testcase-edit.html",
         array(
@@ -409,7 +409,7 @@ $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Reques
     }
 
     $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkEditTestCase($pid, $testid)) {
+    if(!$this->permissions->checkEditTestCase($testid)) {
         $this->db->exec("ROLLBACK");
         $this->messages[] = "You are not allowed to edit this test case.";
         return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));

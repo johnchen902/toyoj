@@ -36,8 +36,13 @@ class PermissionChecker {
     public function checkNewTestCase($pid) {
         return $this->checkEditProblem($pid);
     }
-    public function checkEditTestCase($pid, $caseid) {
-        return $this->checkEditProblem($pid);
+    public function checkEditTestCase($caseid) {
+        $login = $this->getLogin();
+        if(!$login)
+            return false;
+        $stmt = $this->prepare("SELECT 1 FROM problems p, testcases t WHERE p.pid = t.pid AND t.testcaseid = :caseid AND p.manager = :login");
+        $stmt->execute(array(":caseid" => $caseid, ":login" => $login));
+        return $stmt->rowCount() > 0;
     }
 };
 ?>
