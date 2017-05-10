@@ -2,6 +2,8 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+set_include_path(get_include_path() . PATH_SEPARATOR . "../classes/");
+spl_autoload_register();
 require "../vendor/autoload.php";
 
 function redirect(Response $response, int $code, string $location) {
@@ -46,69 +48,10 @@ $container["notFoundHandler"] = function ($container) {
     };
 };
 $container["session"] = function ($container) {
-    session_start();
-    class SessionWrapper implements ArrayAccess {
-        public function offsetExists($offset) {
-            return isset($_SESSION[$offset]);
-        }
-        public function &offsetGet($offset) {
-            return $_SESSION[$offset];
-        }
-        public function offsetSet($offset, $value) {
-            if(is_null($offset))
-                $_SESSION[] = $value;
-            else
-                $_SESSION[$offset] = $value;
-        }
-        public function offsetUnset($offset) {
-            unset($_SESSION[$offset]);
-        }
-    };
-    return new SessionWrapper();
+    return new \Toyoj\SessionWrapper();
 };
 $container["messages"] = function ($container) {
-    class MessageWrapper implements Iterator, ArrayAccess {
-        public function __construct($session) {
-            $this->session = $session;
-        }
-
-        public function current() {
-            return $this->session["messages"][0];
-        }
-        public function key() {
-            return 0;
-        }
-        public function next() {
-            array_shift($this->session["messages"]);
-        }
-        public function rewind() {
-            // No-op
-        }
-        public function valid() {
-            return isset($this->session["messages"][0]);
-        }
-
-
-        public function offsetExists($offset) {
-            return isset($this->session["messages"][$offset]);
-        }
-        public function &offsetGet($offset) {
-            return $this->session["messages"][$offset];
-        }
-        public function offsetSet($offset, $value) {
-            if(is_null($offset))
-                $this->session["messages"][] = $value;
-            else
-                $this->session["messages"][$offset] = $value;
-        }
-        public function offsetUnset($offset) {
-            unset($this->session["messages"][$offset]);
-        }
-    };
-    $session = $container->session;
-    if(!isset($session["messages"]))
-        $session["messages"] = array();
-    return new MessageWrapper($session);
+    return new \Toyoj\MessageWrapper($container->session);
 };
 
 $app->get("/", function (Request $request, Response $response) {
