@@ -1,0 +1,51 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% set canedit = login == problem.manager %}
+
+{% block title %}New Test Case of {{ problem.title }} - {{ parent() }}{% endblock %}
+
+{% block nav %}
+{{ parent() }}{##}
+    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+{% endblock %}
+
+{% block content %}
+  <h2>New Test Case of {{ problem.title }}</h2>
+{% if not canedit %}
+  <div class="message">
+    You cannot add new test case for this problem.
+  </div>
+{% endif %}
+  <form method="post"><fieldset{% if not canedit %} disabled{% endif %}>
+    <div>
+      <label>
+        Time: <input type="text" name="time_limit" value="1000">
+      </label>
+    </div>
+    <div>
+      <label>
+        Memory: <input type="text" name="memory_limit" value="262144">
+      </label>
+    </div>
+    <div>
+      <label>
+        Checker: <input type="text" name="checker" value="exact">
+      </label>
+    </div>
+    <div>
+      <label>
+        Input:
+        <textarea name="input" cols="80" rows="22" wrap="off"></textarea>
+      </label>
+    </div>
+    <div>
+      <label>
+        Output:
+        <textarea name="output" cols="80" rows="22" wrap="off"></textarea>
+      </label>
+    </div>
+    <div>
+      <input type="submit" value="Save">
+    </div>
+  </fieldset></form>
+{% endblock %}

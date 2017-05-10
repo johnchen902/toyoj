@@ -163,6 +163,14 @@ $app->get("/problems/", function (Request $request, Response $response) {
     return $this->view->render($response, "problems.html", array("problems" => $problems));
 })->setName("problem-list");
 
+$app->get("/problems/new", function (Request $request, Response $response) {
+    return $response;
+})->setName("new-problem");
+
+$app->post("/problems/new", function (Request $request, Response $response) {
+    return $response;
+});
+
 $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
@@ -237,14 +245,6 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
     return redirect($response, 303, $this->router->pathFor("submission", array("sid" => $sid)));
 });
 
-$app->get("/problems/new", function (Request $request, Response $response) {
-    return $response;
-})->setName("new-problem");
-
-$app->post("/problems/new", function (Request $request, Response $response) {
-    return $response;
-});
-
 $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
@@ -306,12 +306,80 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
     return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response) {
-    return $response;
+$app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
+    $problem->execute(array(":pid" => $pid));
+    $problem = $problem->fetch();
+    if(!$problem) {
+        return ($this->errorview)($response, 404, "No Such Problem");
+    }
+    return $this->view->render($response, "testcase-new.html",
+            array("problem" => $problem));
 })->setName("new-test");
 
-$app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response) {
-    return $response;
+$app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $login = $this->session["login"];
+    $time_limit = (int) $request->getParsedBodyParam("time_limit");
+    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
+    $checker = $request->getParsedBodyParam("checker");
+    $input = $request->getParsedBodyParam("input");
+    $output = $request->getParsedBodyParam("output");
+
+    $input = str_replace("\r\n", "\n", $input);
+    $output = str_replace("\r\n", "\n", $output);
+
+    $valid = true;
+    if($time_limit < 100 || $time_limit > 15000) {
+        $this->messages[] = "Time limit is out of range [100 ms, 15000 ms].";
+        $valid = false;
+    }
+    if($memory_limit < 8192 || $memory_limit > 1048576) {
+        $this->messages[] = "Memory limit is out of range [8192 KiB, 1048576 KiB].";
+        $valid = false;
+    }
+    if(!$input) {
+        $this->messages[] = "Input is empty.";
+        $valid = false;
+    } else if(strlen($input) > 16 << 20) {
+        $this->messages[] = "Input is longer than 16 MiB.";
+        $valid = false;
+    }
+    if(!$output) {
+        $this->messages[] = "Output is empty.";
+        $valid = false;
+    } else if(strlen($output) > 16 << 20) {
+        $this->messages[] = "Output is longer than 16 MiB.";
+        $valid = false;
+    }
+    if(!$valid) {
+        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
+    }
+
+    $stmt = $this->db->prepare("INSERT INTO testcases (pid, time_limit, memory_limit, checker, input, output) SELECT pid, :time_limit, :memory_limit, :checker, :input, :output FROM problems WHERE pid = :pid AND manager = :user RETURNING testcaseid");
+    try {
+     $stmt->execute(array(
+         ":pid" => $pid,
+         ":time_limit" => $time_limit,
+         ":memory_limit" => $memory_limit,
+         ":checker" => $checker,
+         ":input" => $input,
+         ":output" => $output,
+         ":user" => $login
+     ));
+    } catch (PDOException $e) {
+        $this->messages[] = "Failed. Perhaps the checker doesn't exists.";
+        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
+    }
+    if(!$stmt->rowCount()) {
+        $this->messages[] = "Failed. Perhaps the problem doesn't exists or you don't have sufficient permission.";
+        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
+    }
+
+    $testid = $stmt->fetch()["testcaseid"];
+    $this->messages[] = "Test case added.";
+    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response, array $args) {
