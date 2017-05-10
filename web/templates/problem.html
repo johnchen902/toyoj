@@ -8,7 +8,7 @@
 
 {% block nav %}
 {{ parent() }}{##}
-{% if login == problem.manager %}
+{% if problem.canedit %}
     <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
 {% endif %}
 {% endblock %}
@@ -27,7 +27,7 @@
     This problem is not ready for submission.
   </div>
 {% endif %}
-  <form method="post"><fieldset{% if not login or (not problem.ready and login != problem.manager) %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not problem.cansubmit %} disabled{% endif %}>
     <input type="hidden" name="language" value="C++14">
     <div>
       <label>

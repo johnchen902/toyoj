@@ -1,6 +1,5 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set canedit = login == problem.manager %}
 
 {% block title %}Edit {{ problem.title }} - {{ parent() }}{% endblock %}
 
@@ -11,12 +10,12 @@
 
 {% block content %}
   <h2>Edit {{ problem.title }}</h2>
-{% if not canedit %}
+{% if not problem.canedit %}
   <div class="message">
     You cannot edit this problem.
   </div>
 {% endif %}
-  <form method="post"><fieldset{% if not canedit %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not problem.canedit %} disabled{% endif %}>
     <div>
       <label>
         Title: <input type="text" name="title" value="{{ problem.title }}">

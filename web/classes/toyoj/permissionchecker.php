@@ -1,0 +1,43 @@
+<?php
+namespace Toyoj;
+// TODO some queries are redundant; optimize later
+class PermissionChecker {
+    private $c; // dependency injection container
+    public function __construct($c) {
+        $this->c = $c;
+    }
+    private function getLogin() {
+        return $this->c->session["login"];
+    }
+    private function prepare(string $queryString) {
+        return $this->c->db->prepare($queryString);
+    }
+
+    public function checkSubmit($pid) {
+        $login = $this->getLogin();
+        if(!$login)
+            return false;
+        $stmt = $this->prepare("SELECT 1 FROM problems WHERE pid = :pid AND (ready OR manager = :login)");
+        $stmt->execute(array(":pid" => $pid, ":login" => $login));
+        return $stmt->rowCount() > 0;
+    }
+
+    public function checkNewProblem() {
+        return false;
+    }
+    public function checkEditProblem($pid) {
+        $login = $this->getLogin();
+        if(!$login)
+            return false;
+        $stmt = $this->prepare("SELECT 1 FROM problems WHERE pid = :pid AND manager = :login");
+        $stmt->execute(array(":pid" => $pid, ":login" => $login));
+        return $stmt->rowCount() > 0;
+    }
+    public function checkNewTestCase($pid) {
+        return $this->checkEditProblem($pid);
+    }
+    public function checkEditTestCase($pid, $caseid) {
+        return $this->checkEditProblem($pid);
+    }
+};
+?>

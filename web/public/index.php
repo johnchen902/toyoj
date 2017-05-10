@@ -53,6 +53,9 @@ $container["session"] = function ($container) {
 $container["messages"] = function ($container) {
     return new \Toyoj\MessageWrapper($container->session);
 };
+$container["permissions"] = function ($container) {
+    return new \Toyoj\PermissionChecker($container);
+};
 
 $app->get("/", function (Request $request, Response $response) {
     return $this->view->render($response, "index.html");
@@ -122,6 +125,8 @@ $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $respo
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
+    $problem["cansubmit"] = $this->permissions->checkSubmit($pid);
+    $problem["canedit"] = $this->permissions->checkEditProblem($pid);
 
     $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
     $subtasks->execute(array(":pid" => $pid));
@@ -151,10 +156,6 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
     $code = $request->getParsedBodyParam("code");
     $code = str_replace("\r\n", "\n", $code);
 
-    if(!$login) {
-        $this->messages[] = "You must login to submit.";
-        return redirect($response, 303, $this->router->pathFor("login"));
-    }
     if(!$code) {
         $this->messages[] = "Code is empty.";
         return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
@@ -164,23 +165,19 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
         return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
     }
 
-    $problem = $this->db->prepare("SELECT manager, ready FROM problems WHERE pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        $this->messages[] = "No Such Problem.";
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkSubmit($pid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to submit on this problem.";
         return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
     }
-    if(!$problem["ready"] && $problem["manager"] !== $login) {
-        $this->messages[] = "This problem is not ready for submission.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-
     $sid = $this->db->prepare("INSERT INTO submissions(pid, submitter, language, code) VALUES (:pid, :submitter, :language, :code) RETURNING sid");
     $sid->execute(array(":pid" => $pid, ":submitter" => $login, ":language" => $language, ":code" => $code));
     $sid = $sid->fetch();
+    $this->db->exec("COMMIT");
+
     if(!$sid) {
-        $this->messages[] = "I'm not sure what's happening...";
+        $this->messages[] = "Submission failed for unknown reason";
         return redirect($response, 303, $this->router->pathFor("submission-list"));
     }
     $sid = $sid["sid"];
@@ -196,6 +193,7 @@ $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $r
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
+    $problem["canedit"] = $this->permissions->checkEditProblem($pid);
 
     $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
     $subtasks->execute(array(":pid" => $pid));
@@ -218,7 +216,6 @@ $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $r
         )
     );
 })->setName("edit-problem");
-
 $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $login = $this->session["login"];
@@ -238,10 +235,19 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
         return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
     }
 
-    $stmt = $this->db->prepare("UPDATE problems SET (title, statement, ready) = (:title, :statement, :ready) WHERE pid = :pid AND manager = :user");
-    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":ready" => $ready, ":pid" => $pid, ":user" => $login));
-    if(!$stmt->rowCount()) {
-        $this->messages[] = "Update failed. Perhaps the problem doesn't exists or you don't have sufficient permission.";
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkEditProblem($pid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to edit this problem.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+    $stmt = $this->db->prepare("UPDATE problems SET (title, statement, ready) = (:title, :statement, :ready) WHERE pid = :pid");
+    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":ready" => $ready, ":pid" => $pid));
+    $editSuccess = $stmt->rowCount() > 0;
+    $this->db->exec("COMMIT");
+
+    if(!$editSuccess) {
+        $this->messages[] = "Edit failed for unknown reason";
         return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
     }
 
@@ -257,10 +263,10 @@ $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Respon
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
+    $problem["canaddtest"] = $this->permissions->checkNewTestCase($pid);
     return $this->view->render($response, "testcase-new.html",
             array("problem" => $problem));
 })->setName("new-test");
-
 $app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $login = $this->session["login"];
@@ -300,27 +306,30 @@ $app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Respo
         return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
     }
 
-    $stmt = $this->db->prepare("INSERT INTO testcases (pid, time_limit, memory_limit, checker, input, output) SELECT pid, :time_limit, :memory_limit, :checker, :input, :output FROM problems WHERE pid = :pid AND manager = :user RETURNING testcaseid");
-    try {
-     $stmt->execute(array(
-         ":pid" => $pid,
-         ":time_limit" => $time_limit,
-         ":memory_limit" => $memory_limit,
-         ":checker" => $checker,
-         ":input" => $input,
-         ":output" => $output,
-         ":user" => $login
-     ));
-    } catch (PDOException $e) {
-        $this->messages[] = "Failed. Perhaps the checker doesn't exists.";
-        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkNewTestCase($pid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to add new test case for this problem.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
     }
-    if(!$stmt->rowCount()) {
-        $this->messages[] = "Failed. Perhaps the problem doesn't exists or you don't have sufficient permission.";
+    $stmt = $this->db->prepare("INSERT INTO testcases (pid, time_limit, memory_limit, checker, input, output) VALUES (:pid, :time_limit, :memory_limit, :checker, :input, :output) RETURNING testcaseid");
+    $stmt->execute(array(
+        ":pid" => $pid,
+        ":time_limit" => $time_limit,
+        ":memory_limit" => $memory_limit,
+        ":checker" => $checker,
+        ":input" => $input,
+        ":output" => $output,
+    ));
+    $testid = $stmt->fetch();
+    $this->db->exec("COMMIT");
+
+    if(!$testid) {
+        $this->messages[] = "Add new test case failed for unknown reason";
         return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
     }
 
-    $testid = $stmt->fetch()["testcaseid"];
+    $testid = $testid["testcaseid"];
     $this->messages[] = "Test case added.";
     return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
 });
@@ -335,12 +344,10 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $re
     if(!$testcase) {
         return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
+    $testcase["canedit"] = $this->permissions->checkEditTestCase($pid, $testcaseid);
 
     return $this->view->render($response, "testcase.html",
-        array(
-            "testcase" => $testcase
-        )
-    );
+            array("testcase" => $testcase));
 })->setName("test");
 
 $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
@@ -353,6 +360,7 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
     if(!$testcase) {
         return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
+    $testcase["canedit"] = $this->permissions->checkEditTestCase($pid, $testcaseid);
 
     return $this->view->render($response, "testcase-edit.html",
         array(
@@ -360,7 +368,6 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
         )
     );
 })->setName("edit-test");
-
 $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $testid = $args["testid"];
@@ -401,24 +408,27 @@ $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Reques
         return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
     }
 
-    $stmt = $this->db->prepare("UPDATE testcases t SET (time_limit, memory_limit, checker, input, output) = (:time_limit, :memory_limit, :checker, :input, :output) FROM problems p WHERE t.pid = :pid AND t.testcaseid = :testcaseid AND t.pid = p.pid AND p.manager = :user");
-    try {
-        $stmt->execute(array(
-            ":time_limit" => $time_limit,
-            ":memory_limit" => $memory_limit,
-            ":checker" => $checker,
-            ":input" => $input,
-            ":output" => $output,
-            ":pid" => $pid,
-            ":testcaseid" => $testid,
-            ":user" => $login,
-        ));
-    } catch (PDOException $e) {
-        $this->messages[] = "Update failed. Perhaps the checker doesn't exists.";
-        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkEditTestCase($pid, $testid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to edit this test case.";
+        return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
     }
-    if(!$stmt->rowCount()) {
-        $this->messages[] = "Update failed. Perhaps the problem or test case doesn't exists or you don't have sufficient permission.";
+    $stmt = $this->db->prepare("UPDATE testcases SET (time_limit, memory_limit, checker, input, output) = (:time_limit, :memory_limit, :checker, :input, :output) WHERE testcaseid = :testcaseid AND pid = :pid");
+    $stmt->execute(array(
+        ":time_limit" => $time_limit,
+        ":memory_limit" => $memory_limit,
+        ":checker" => $checker,
+        ":input" => $input,
+        ":output" => $output,
+        ":pid" => $pid,
+        ":testcaseid" => $testid,
+    ));
+    $editSuccess = $stmt->rowCount() > 0;
+    $this->db->exec("COMMIT");
+
+    if(!$editSuccess) {
+        $this->messages[] = "Edit failed for unknown reason.";
         return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
     }
 

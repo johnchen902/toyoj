@@ -1,6 +1,5 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set canedit = login == testcase.manager %}
 
 {% block title %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
 
@@ -11,12 +10,12 @@
 
 {% block content %}
   <h2>Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}</h2>
-{% if not canedit %}
+{% if not testcase.canedit %}
   <div class="message">
     You cannot edit this test case.
   </div>
 {% endif %}
-  <form method="post"><fieldset{% if not canedit %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not testcase.canedit %} disabled{% endif %}>
     <div>
       <label>
         Time: <input type="text" name="time_limit" value="{{ testcase.time_limit }}">
