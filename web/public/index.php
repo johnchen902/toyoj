@@ -56,6 +56,9 @@ $container["messages"] = function ($container) {
 $container["permissions"] = function ($container) {
     return new \Toyoj\PermissionChecker($container);
 };
+$container["forms"] = function ($container) {
+    return new \Toyoj\FormValidator();
+};
 
 $app->get("/", function (Request $request, Response $response) {
     return $this->view->render($response, "index.html");
@@ -156,12 +159,10 @@ $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $resp
     $code = $request->getParsedBodyParam("code");
     $code = str_replace("\r\n", "\n", $code);
 
-    if(!$code) {
-        $this->messages[] = "Code is empty.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    if(strlen(code) > 65536) { // XXX magic number
-        $this->messages[] = "Code must not be longer than 65536 bytes.";
+    $errors = $this->forms->validateSubmission($language, $code);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
         return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
     }
 
@@ -226,12 +227,10 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
     $statement = str_replace("\r\n", "\n", $statement);
     $ready = $ready === "ready" ? "t" : "f";
 
-    if(!$title) {
-        $this->messages[] = "Title is empty.";
-        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
-    }
-    if(!$statement) {
-        $this->messages[] = "Statement is empty.";
+    $errors = $this->forms->validateProblem($title, $statement);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
         return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
     }
 
@@ -279,30 +278,10 @@ $app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Respo
     $input = str_replace("\r\n", "\n", $input);
     $output = str_replace("\r\n", "\n", $output);
 
-    $valid = true;
-    if($time_limit < 100 || $time_limit > 15000) {
-        $this->messages[] = "Time limit is out of range [100 ms, 15000 ms].";
-        $valid = false;
-    }
-    if($memory_limit < 8192 || $memory_limit > 1048576) {
-        $this->messages[] = "Memory limit is out of range [8192 KiB, 1048576 KiB].";
-        $valid = false;
-    }
-    if(!$input) {
-        $this->messages[] = "Input is empty.";
-        $valid = false;
-    } else if(strlen($input) > 16 << 20) {
-        $this->messages[] = "Input is longer than 16 MiB.";
-        $valid = false;
-    }
-    if(!$output) {
-        $this->messages[] = "Output is empty.";
-        $valid = false;
-    } else if(strlen($output) > 16 << 20) {
-        $this->messages[] = "Output is longer than 16 MiB.";
-        $valid = false;
-    }
-    if(!$valid) {
+    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
         return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
     }
 
@@ -381,30 +360,10 @@ $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Reques
     $input = str_replace("\r\n", "\n", $input);
     $output = str_replace("\r\n", "\n", $output);
 
-    $valid = true;
-    if($time_limit < 100 || $time_limit > 15000) {
-        $this->messages[] = "Time limit is out of range [100 ms, 15000 ms].";
-        $valid = false;
-    }
-    if($memory_limit < 8192 || $memory_limit > 1048576) {
-        $this->messages[] = "Memory limit is out of range [8192 KiB, 1048576 KiB].";
-        $valid = false;
-    }
-    if(!$input) {
-        $this->messages[] = "Input is empty.";
-        $valid = false;
-    } else if(strlen($input) > 16 << 20) {
-        $this->messages[] = "Input is longer than 16 MiB.";
-        $valid = false;
-    }
-    if(!$output) {
-        $this->messages[] = "Output is empty.";
-        $valid = false;
-    } else if(strlen($output) > 16 << 20) {
-        $this->messages[] = "Output is longer than 16 MiB.";
-        $valid = false;
-    }
-    if(!$valid) {
+    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
         return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
     }
 
