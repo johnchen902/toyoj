@@ -16,29 +16,6 @@
 {% block content %}
   <h2>{{ problem.title }}</h2>
   {{ problem.statement|markdown }}
-  <h3>Submission Area</h3>
-{% if not login %}
-  <div class="message">
-    You must sign in to submit.
-  </div>
-{% endif %}
-{% if not problem.ready %}
-  <div class="message">
-    This problem is not ready for submission.
-  </div>
-{% endif %}
-  <form method="post"><fieldset{% if not problem.cansubmit %} disabled{% endif %}>
-    <input type="hidden" name="language" value="C++14">
-    <div>
-      <label>
-        Paste your code here:
-        <textarea name="code" cols="80" rows="22" wrap="off"></textarea>
-      </label>
-    </div>
-    <div>
-      <input type="submit" value="Submit">
-    </div>
-  </fieldset></form>
   <h3>Creation date</h3>
   <time datetime="{{ problem.create_date|date('c') }}">{{ problem.create_date|date('Y-m-d') }}</time>
   <h3>Manager</h3>
@@ -75,4 +52,27 @@
     </tr>
 {% endfor %}
   </table>
+  <h3>Submission Area</h3>
+{% if not login %}
+  <div class="message">
+    You must sign in to submit.
+  </div>
+{% endif %}
+{% if not problem.ready %}
+  <div class="message">
+    This problem is not ready for submission.
+  </div>
+{% endif %}
+  <form method="post"><fieldset{% if not problem.cansubmit %} disabled{% endif %}>
+    <input type="hidden" name="language" value="C++14">
+    <div>
+      <label>
+        Paste your code here:
+        <textarea name="code" cols="80" rows="22" wrap="off"></textarea>
+      </label>
+    </div>
+    <div>
+      <input type="submit" value="Submit">
+    </div>
+  </fieldset></form>
 {% endblock %}
