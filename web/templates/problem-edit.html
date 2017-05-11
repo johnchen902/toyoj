@@ -10,12 +10,7 @@
 
 {% block content %}
   <h2>Edit {{ problem.title }}</h2>
-{% if not problem.canedit %}
-  <div class="message">
-    You cannot edit this problem.
-  </div>
-{% endif %}
-  <form method="post"><fieldset{% if not problem.canedit %} disabled{% endif %}>
+  <form method="post"><fieldset>
     <div>
       <label>
         Title: <input type="text" name="title" value="{{ problem.title }}">

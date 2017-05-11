@@ -5,12 +5,7 @@
 
 {% block content %}
   <h2>New Problem</h2>
-{% if not canaddproblem %}
-  <div class="message">
-    You cannot add new problem.
-  </div>
-{% endif %}
-  <form method="post"><fieldset{% if not canaddproblem %} disabled{% endif %}>
+  <form method="post"><fieldset>
     <div>
       <label>
         Title: <input type="text" name="title">

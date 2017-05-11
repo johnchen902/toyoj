@@ -1,0 +1,14 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+
+{% block title %}View Source for {{ problem.title }} - {{ parent() }}{% endblock %}
+
+{% block nav %}
+{{ parent() }}{##}
+    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+{% endblock %}
+
+{% block content %}
+  <h2>View Source for {{ problem.title }}</h2>
+  <pre><code>{{ problem.statement }}</pre></code>
+{% endblock %}

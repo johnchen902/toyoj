@@ -10,12 +10,7 @@
 
 {% block content %}
   <h2>New Test Case of {{ problem.title }}</h2>
-{% if not problem.canaddtest %}
-  <div class="message">
-    You cannot add new test case for this problem.
-  </div>
-{% endif %}
-  <form method="post"><fieldset{% if not problem.canaddtest %} disabled{% endif %}>
+  <form method="post"><fieldset>
     <div>
       <label>
         Time: <input type="text" name="time_limit" value="1000">

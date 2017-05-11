@@ -5,7 +5,7 @@
 {% block nav %}
 {{ parent() }}{##}
 {% if testcase.canedit %}
-    <a href="{{ path_for('edit-test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">Edit Test Case</a>
+    <a href="{{ path_for('edit-test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">Edit</a>
 {% endif %}
 {% endblock %}
 

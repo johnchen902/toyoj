@@ -113,10 +113,11 @@ $app->get("/problems/", function (Request $request, Response $response) {
 })->setName("problem-list");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
-    $canaddproblem = $this->permissions->checkNewProblem();
-    return $this->view->render($response, "problem-new.html", array("canaddproblem" => $canaddproblem));
+    if(!$this->permissions->checkNewProblem()) {
+        return ($this->errorview)($response, 403, "Forbidden");
+    }
+    return $this->view->render($response, "problem-new.html");
 })->setName("new-problem");
-
 $app->post("/problems/new", function (Request $request, Response $response) {
     $login = $this->session["login"];
     $title = $request->getParsedBodyParam("title");
@@ -226,7 +227,10 @@ $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $r
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
-    $problem["canedit"] = $this->permissions->checkEditProblem($pid);
+    if(!$this->permissions->checkEditProblem($pid)) {
+        return $this->view->render($response, "problem-source.html",
+            array("problem" => $problem));
+    }
 
     $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
     $subtasks->execute(array(":pid" => $pid));
@@ -294,7 +298,9 @@ $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Respon
     if(!$problem) {
         return ($this->errorview)($response, 404, "No Such Problem");
     }
-    $problem["canaddtest"] = $this->permissions->checkNewTestCase($pid);
+    if(!$this->permissions->checkNewTestCase($pid)) {
+        return ($this->errorview)($response, 403, "Forbidden");
+    }
     return $this->view->render($response, "testcase-new.html",
             array("problem" => $problem));
 })->setName("new-test");
@@ -371,13 +377,12 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
     if(!$testcase) {
         return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
     }
-    $testcase["canedit"] = $this->permissions->checkEditTestCase($testcaseid);
+    if(!$this->permissions->checkEditTestCase($testcaseid)) {
+        return ($this->errorview)($response, 403, "Forbidden");
+    }
 
     return $this->view->render($response, "testcase-edit.html",
-        array(
-            "testcase" => $testcase
-        )
-    );
+        array("testcase" => $testcase));
 })->setName("edit-test");
 $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];

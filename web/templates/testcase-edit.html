@@ -10,12 +10,7 @@
 
 {% block content %}
   <h2>Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}</h2>
-{% if not testcase.canedit %}
-  <div class="message">
-    You cannot edit this test case.
-  </div>
-{% endif %}
-  <form method="post"><fieldset{% if not testcase.canedit %} disabled{% endif %}>
+  <form method="post"><fieldset>
     <div>
       <label>
         Time: <input type="text" name="time_limit" value="{{ testcase.time_limit }}">
