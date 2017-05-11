@@ -113,11 +113,43 @@ $app->get("/problems/", function (Request $request, Response $response) {
 })->setName("problem-list");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
-    return $response;
+    $canaddproblem = $this->permissions->checkNewProblem();
+    return $this->view->render($response, "problem-new.html", array("canaddproblem" => $canaddproblem));
 })->setName("new-problem");
 
 $app->post("/problems/new", function (Request $request, Response $response) {
-    return $response;
+    $login = $this->session["login"];
+    $title = $request->getParsedBodyParam("title");
+    $statement = $request->getParsedBodyParam("statement");
+
+    $statement = str_replace("\r\n", "\n", $statement);
+
+    $errors = $this->forms->validateProblem($title, $statement);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
+        return redirect($response, 303, $this->router->pathFor("new-problem"));
+    }
+
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkNewProblem()) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to add new problem.";
+        return redirect($response, 303, $this->router->pathFor("problem-list"));
+    }
+    $stmt = $this->db->prepare("INSERT INTO problems (title, statement, manager) VALUES (:title, :statement, :login) RETURNING pid");
+    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":login" => $login));
+    $pid = $stmt->fetch();
+    $this->db->exec("COMMIT");
+
+    if(!$pid) {
+        $this->messages[] = "Add new problem failed for unknown reason";
+        return redirect($response, 303, $this->router->pathFor("new-problem"));
+    }
+
+    $pid = $pid["pid"];
+    $this->messages[] = "New problem added.";
+    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
 });
 
 $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {

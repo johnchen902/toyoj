@@ -74,6 +74,16 @@ CREATE TABLE passwords (
 
 
 --
+-- Name: permissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE permissions (
+    uid integer NOT NULL,
+    what character varying(32) NOT NULL
+);
+
+
+--
 -- Name: problems; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -450,6 +460,14 @@ COPY passwords (uid, hash) FROM stdin;
 
 
 --
+-- Data for Name: permissions; Type: TABLE DATA; Schema: public; Owner: -
+--
+
+COPY permissions (uid, what) FROM stdin;
+\.
+
+
+--
 -- Data for Name: problems; Type: TABLE DATA; Schema: public; Owner: -
 --
 
@@ -573,6 +591,14 @@ ALTER TABLE ONLY passwords
 
 
 --
+-- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY permissions
+    ADD CONSTRAINT permissions_pkey PRIMARY KEY (uid, what);
+
+
+--
 -- Name: problems problems_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -683,6 +709,14 @@ ALTER TABLE ONLY passwords
 
 
 --
+-- Name: permissions permissions_uid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY permissions
+    ADD CONSTRAINT permissions_uid_fkey FOREIGN KEY (uid) REFERENCES users(uid);
+
+
+--
 -- Name: problems problems_manager_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -778,10 +812,24 @@ GRANT SELECT ON TABLE passwords TO toyojweb;
 
 
 --
+-- Name: permissions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE permissions TO toyojweb;
+
+
+--
 -- Name: problems; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,UPDATE ON TABLE problems TO toyojweb;
+GRANT SELECT,INSERT,UPDATE ON TABLE problems TO toyojweb;
+
+
+--
+-- Name: problems_pid_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT USAGE ON SEQUENCE problems_pid_seq TO toyojweb;
 
 
 --
@@ -795,7 +843,7 @@ GRANT SELECT,INSERT ON TABLE submissions TO toyojweb;
 -- Name: testcases; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT,UPDATE ON TABLE testcases TO toyojweb;
+GRANT SELECT,INSERT,UPDATE ON TABLE testcases TO toyojweb;
 
 
 --
@@ -810,6 +858,20 @@ GRANT SELECT ON TABLE results_view TO toyojweb;
 --
 
 GRANT USAGE ON SEQUENCE submissions_sid_seq TO toyojweb;
+
+
+--
+-- Name: subtasks; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE subtasks TO toyojweb;
+
+
+--
+-- Name: subtasktestcases; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT ON TABLE subtasktestcases TO toyojweb;
 
 
 --
@@ -838,6 +900,13 @@ GRANT SELECT ON TABLE subtask_results_view_2 TO toyojweb;
 --
 
 GRANT SELECT ON TABLE subtasks_view TO toyojweb;
+
+
+--
+-- Name: testcases_testcaseid_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT USAGE ON SEQUENCE testcases_testcaseid_seq TO toyojweb;
 
 
 --

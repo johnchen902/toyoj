@@ -1,0 +1,29 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+
+{% block title %}New Problem - {{ parent() }}{% endblock %}
+
+{% block content %}
+  <h2>New Problem</h2>
+{% if not canaddproblem %}
+  <div class="message">
+    You cannot add new problem.
+  </div>
+{% endif %}
+  <form method="post"><fieldset{% if not canaddproblem %} disabled{% endif %}>
+    <div>
+      <label>
+        Title: <input type="text" name="title">
+      </label>
+    </div>
+    <div>
+      <label>
+        Statement:
+        <textarea name="statement" cols="80" rows="22" wrap="off"></textarea>
+      </label>
+    </div>
+    <div>
+      <input type="submit" value="Save">
+    </div>
+  </fieldset></form>
+{% endblock %}

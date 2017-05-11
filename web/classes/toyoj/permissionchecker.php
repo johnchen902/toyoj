@@ -23,7 +23,12 @@ class PermissionChecker {
     }
 
     public function checkNewProblem() {
-        return false;
+        $login = $this->getLogin();
+        if(!$login)
+            return false;
+        $stmt = $this->prepare("SELECT 1 FROM permissions WHERE uid = :login");
+        $stmt->execute(array(":login" => $login));
+        return $stmt->rowCount() > 0;
     }
     public function checkEditProblem($pid) {
         $login = $this->getLogin();
