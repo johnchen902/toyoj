@@ -41,6 +41,9 @@ class PermissionChecker {
     public function checkNewSubtask($pid) {
         return $this->checkEditProblem($pid);
     }
+    public function checkDeleteSubtask($subtaskid) {
+        return $this->checkEditSubtask($subtaskid);
+    }
     public function checkEditSubtask($subtaskid) {
         $login = $this->getLogin();
         if(!$login)

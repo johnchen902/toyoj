@@ -297,7 +297,7 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
 $app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
-});
+})->setName("subtask-list");
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
@@ -389,6 +389,26 @@ $app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (
     $score = (int) $request->getParsedBodyParam("score");
     $testcaseids = $request->getParsedBodyParam("testcaseids");
     $alltestcaseids = $request->getParsedBodyParam("alltestcaseids");
+    $delete = $request->getParsedBodyParam("delete");
+
+    if($delete) {
+        $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+        if(!$this->permissions->checkDeleteSubtask($subtaskid)) {
+            $this->db->exec("ROLLBACK");
+            $this->messages[] = "You are not allowed to delete this subtask.";
+            return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+        }
+        $stmt = $this->db->prepare("DELETE FROM subtasks WHERE pid = :pid AND subtaskid = :subtaskid");
+        $stmt->execute(["pid" => $pid, "subtaskid" => $subtaskid]);
+        $success = $stmt->rowCount() > 0;
+        if(!$success) {
+            $this->db->exec("ROLLBACK");
+            $this->messages[] = "Delete failed for unknown reason.";
+            return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+        }
+        $this->db->exec("COMMIT");
+        return redirect($response, 303, $this->router->pathFor("subtask-list", array("pid" => $pid)));
+    }
 
     $errors = $this->forms->validateSubtask($score, $testcaseids, $alltestcaseids);
     if($errors) {
@@ -409,12 +429,17 @@ $app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (
         if(!$stmt->fetch()) {
             $this->db->exec("ROLLBACK");
             $this->messages[] = "Test case #$testcaseid is not of problem #$pid";
-            return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
+            return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
         }
     }
 
-    $stmt = $this->db->prepare("UPDATE subtasks SET score = :score WHERE subtaskid = :subtaskid");
-    $stmt->execute([":subtaskid" => $subtaskid, ":score" => $score ]);
+    $stmt = $this->db->prepare("UPDATE subtasks SET score = :score WHERE pid = :pid AND subtaskid = :subtaskid");
+    $stmt->execute([":subtaskid" => $subtaskid, ":score" => $score, ":pid" => $pid]);
+    if($stmt->rowCount() == 0) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "Subtask #$subtaskid is not of problem #$pid";
+        return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+    }
 
     $stmtInsert = $this->db->prepare("INSERT INTO subtasktestcases (subtaskid, testcaseid) VALUES (:subtaskid, :testcaseid) ON CONFLICT DO NOTHING");
     $stmtDelete = $this->db->prepare("DELETE FROM subtasktestcases WHERE subtaskid = :subtaskid AND testcaseid = :testcaseid");

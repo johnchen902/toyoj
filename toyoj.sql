@@ -777,7 +777,7 @@ ALTER TABLE ONLY subtasks
 --
 
 ALTER TABLE ONLY subtasktestcases
-    ADD CONSTRAINT subtasktestcases_subtaskid_fkey FOREIGN KEY (subtaskid) REFERENCES subtasks(subtaskid);
+    ADD CONSTRAINT subtasktestcases_subtaskid_fkey FOREIGN KEY (subtaskid) REFERENCES subtasks(subtaskid) ON DELETE CASCADE;
 
 
 --
@@ -864,14 +864,14 @@ GRANT USAGE ON SEQUENCE submissions_sid_seq TO toyojweb;
 -- Name: subtasks; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE subtasks TO toyojweb;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE subtasks TO toyojweb;
 
 
 --
 -- Name: subtasktestcases; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT SELECT ON TABLE subtasktestcases TO toyojweb;
+GRANT SELECT,INSERT,DELETE ON TABLE subtasktestcases TO toyojweb;
 
 
 --
@@ -893,6 +893,13 @@ GRANT SELECT ON TABLE submissions_view TO toyojweb;
 --
 
 GRANT SELECT ON TABLE subtask_results_view_2 TO toyojweb;
+
+
+--
+-- Name: subtasks_subtaskid_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT USAGE ON SEQUENCE subtasks_subtaskid_seq TO toyojweb;
 
 
 --
