@@ -38,6 +38,17 @@ class PermissionChecker {
         $stmt->execute(array(":pid" => $pid, ":login" => $login));
         return $stmt->rowCount() > 0;
     }
+    public function checkNewSubtask($pid) {
+        return $this->checkEditProblem($pid);
+    }
+    public function checkEditSubtask($subtaskid) {
+        $login = $this->getLogin();
+        if(!$login)
+            return false;
+        $stmt = $this->prepare("SELECT 1 FROM problems p, subtasks s WHERE p.pid = s.pid AND s.subtaskid = :subtaskid AND p.manager = :login");
+        $stmt->execute(array(":subtaskid" => $subtaskid, ":login" => $login));
+        return $stmt->rowCount() > 0;
+    }
     public function checkNewTestCase($pid) {
         return $this->checkEditProblem($pid);
     }

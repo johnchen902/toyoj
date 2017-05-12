@@ -26,6 +26,18 @@ class FormValidator {
         $this->validateString($e, $statement, "Statement", 1, 65536);
         return $e;
     }
+    public function validateSubtask($score, $testcaseids, $alltestcaseids) {
+        $e = array();
+        if($score < 1)
+            $e[] = "Score is less than 1";
+        if(is_null($testcaseids))
+            $e[] = "No test cases are selected";
+        else if(!is_array($testcaseids))
+            $e[] = "\$testcaseids is not an array";
+        if(!is_array($alltestcaseids))
+            $e[] = "\$alltestcaseids is not an array";
+        return $e;
+    }
     public function validateTestCase($time, $mem, $checker, $input, $output) {
         $e = array();
         if($time < 100 || $time > 15000)

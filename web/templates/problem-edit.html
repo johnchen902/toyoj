@@ -8,6 +8,7 @@
 {% block nav2 %}
 {{ parent() }}{##}
     <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+    <a href="{{ path_for('new-subtask', { 'pid': problem.pid }) }}">New Subtask</a>
     <a href="{{ path_for('new-test', { 'pid': problem.pid }) }}">New Test Case</a>
 {% endblock nav2 %}
 
@@ -42,7 +43,7 @@
     </tr>
 {% for subt in subtasks %}
     <tr>
-      <td>{{ subt.subtaskid }}</td>
+      <td><a href="{{ path_for('edit-subtask', { 'pid': problem.pid, 'subtaskid': subt.subtaskid }) }}">{{ subt.subtaskid }}</a></td>
       <td>{{ subt.score }}</td>
       <td>{{ subt.testcaseids }}</td>
     </tr>

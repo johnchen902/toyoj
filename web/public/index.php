@@ -299,19 +299,135 @@ $app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Respon
     return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
 });
 
+$app->get("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
+    $problem->execute([":pid" => $pid]);
+    $problem = $problem->fetch();
+    if(!$problem)
+        return ($this->errorview)($response, 404, "No Such Problem");
+    if(!$this->permissions->checkNewSubtask($pid))
+        return ($this->errorview)($response, 403, "Forbidden");
+
+    $testcases = $this->db->prepare("SELECT testcaseid FROM testcases WHERE pid = :pid");
+    $testcases->execute([":pid" => $pid]);
+    $testcases = $testcases->fetchAll();
+
+    return $this->view->render($response, "subtask-new.html",
+            ["problem" => $problem, "testcases" => $testcases]);
+})->setName("new-subtask");
+$app->post("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $login = $this->session["login"];
+    $score = (int) $request->getParsedBodyParam("score");
+    $testcaseids = $request->getParsedBodyParam("testcaseids");
+
+    $errors = $this->forms->validateSubtask($score, $testcaseids, $testcaseids);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
+        return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
+    }
+
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkNewSubtask($pid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to add new subtask for this problem.";
+        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    }
+    $stmt = $this->db->prepare("SELECT 1 FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    foreach($testcaseids as $testcaseid) {
+        $stmt->execute([":pid" => $pid, ":testcaseid" => $testcaseid]);
+        if(!$stmt->fetch()) {
+            $this->db->exec("ROLLBACK");
+            $this->messages[] = "Test case #$testcaseid is not of problem #$pid";
+            return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
+        }
+    }
+
+    $stmt = $this->db->prepare("INSERT INTO subtasks (pid, score) VALUES (:pid, :score) RETURNING subtaskid");
+    $stmt->execute([":pid" => $pid, ":score" => $score ]);
+    $subtaskid = $stmt->fetch()["subtaskid"];
+
+    $stmt = $this->db->prepare("INSERT INTO subtasktestcases (subtaskid, testcaseid) VALUES (:subtaskid, :testcaseid)");
+    foreach($testcaseids as $testcaseid) {
+        $stmt->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
+    }
+    $this->db->exec("COMMIT");
+
+    $this->messages[] = "Subtask added.";
+    return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+});
+
 $app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
-});
+})->setName("subtask");
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $subtaskid = $args["subtaskid"];
-    return $response;
-});
+    $subtask = $this->db->prepare("SELECT p.pid, p.title, s.subtaskid, s.score FROM subtasks s JOIN problems p USING (pid) WHERE pid = :pid AND subtaskid = :subtaskid");
+    $subtask->execute([":pid" => $pid, ":subtaskid" => $subtaskid]);
+    $subtask = $subtask->fetch();
+    if(!$subtask)
+        return ($this->errorview)($response, 404, "No Such Problem Or Subtask");
+    if(!$this->permissions->checkEditSubtask($subtaskid))
+        return ($this->errorview)($response, 403, "Forbidden");
+
+    $testcases = $this->db->prepare("SELECT testcaseid, testcaseid IN (SELECT testcaseid FROM subtasktestcases WHERE subtaskid = :subtaskid) AS included FROM testcases WHERE pid = :pid");
+    $testcases->execute([":subtaskid" => $subtaskid, ":pid" => $pid]);
+    $testcases = $testcases->fetchAll();
+
+    return $this->view->render($response, "subtask-edit.html",
+            ["subtask" => $subtask, "testcases" => $testcases]);
+})->setName("edit-subtask");
 $app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $subtaskid = $args["subtaskid"];
+    $login = $this->session["login"];
+    $score = (int) $request->getParsedBodyParam("score");
+    $testcaseids = $request->getParsedBodyParam("testcaseids");
+    $alltestcaseids = $request->getParsedBodyParam("alltestcaseids");
+
+    $errors = $this->forms->validateSubtask($score, $testcaseids, $alltestcaseids);
+    if($errors) {
+        foreach($errors as $e)
+            $this->messages[] = $e;
+        return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+    }
+
+    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+    if(!$this->permissions->checkEditSubtask($subtaskid)) {
+        $this->db->exec("ROLLBACK");
+        $this->messages[] = "You are not allowed to edit this subtask.";
+        return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
+    }
+    $stmt = $this->db->prepare("SELECT 1 FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
+    foreach($alltestcaseids as $testcaseid) {
+        $stmt->execute([":pid" => $pid, ":testcaseid" => $testcaseid]);
+        if(!$stmt->fetch()) {
+            $this->db->exec("ROLLBACK");
+            $this->messages[] = "Test case #$testcaseid is not of problem #$pid";
+            return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
+        }
+    }
+
+    $stmt = $this->db->prepare("UPDATE subtasks SET score = :score WHERE subtaskid = :subtaskid");
+    $stmt->execute([":subtaskid" => $subtaskid, ":score" => $score ]);
+
+    $stmtInsert = $this->db->prepare("INSERT INTO subtasktestcases (subtaskid, testcaseid) VALUES (:subtaskid, :testcaseid) ON CONFLICT DO NOTHING");
+    $stmtDelete = $this->db->prepare("DELETE FROM subtasktestcases WHERE subtaskid = :subtaskid AND testcaseid = :testcaseid");
+    foreach($alltestcaseids as $testcaseid) {
+        if(in_array($testcaseid, $testcaseids))
+            $stmtInsert->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
+        else
+            $stmtDelete->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
+    }
+    $this->db->exec("COMMIT");
+
+    $this->messages[] = "Subtask edited.";
+    return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
     return $response;
 });
 

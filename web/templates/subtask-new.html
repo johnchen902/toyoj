@@ -1,0 +1,32 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+
+{% block title %}New Subtask of {{ problem.title }} - {{ parent() }}{% endblock %}
+
+{% block h2 %}New Subtask of {{ problem.title }}{% endblock %}
+
+{% block nav2 %}
+{{ parent() }}{##}
+    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
+{% endblock nav2 %}
+
+{% block content %}
+  <form method="post"><fieldset>
+    <div>
+      <label>
+        Score: <input type="number" name="score" min="1" value="100">
+      </label>
+    </div>
+{% for test in testcases %}
+    <div>
+      <label>
+        <input type="checkbox" name="testcaseids[]" value="{{ test.testcaseid }}"> Test Case #{{ test.testcaseid }}
+      </label>
+    </div>
+{% endfor %}
+    <div>
+      <input type="submit" value="Save">
+    </div>
+  </fieldset></form>
+{% endblock content %}
