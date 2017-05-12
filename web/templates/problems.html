@@ -4,6 +4,13 @@
 
 {% block h2 %}Problems{% endblock %}
 
+{% block nav2 %}
+{{ parent() }}{##}
+{% if canaddnewproblem %}
+    <a href="{{ path_for('new-problem') }}">New Problem</a>
+{% endif %}
+{% endblock nav2 %}
+
 {% block content %}
   <table>
     <tr>

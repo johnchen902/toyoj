@@ -109,7 +109,12 @@ $app->post("/logout", function (Request $request, Response $response) {
 
 $app->get("/problems/", function (Request $request, Response $response) {
     $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
-    return $this->view->render($response, "problems.html", array("problems" => $problems));
+    $canaddnewproblem = $this->permissions->checkNewProblem();
+    return $this->view->render($response, "problems.html",
+        array(
+            "problems" => $problems,
+            "canaddnewproblem" => $canaddnewproblem,
+        ));
 })->setName("problem-list");
 
 $app->get("/problems/new", function (Request $request, Response $response) {

@@ -8,6 +8,7 @@
 {% block nav2 %}
 {{ parent() }}{##}
     <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
+    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
 {% endblock nav2 %}
 
 {% block content %}
