@@ -1,8 +1,10 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
 {% block title %}Problems - {{ parent() }}{% endblock %}
+
+{% block h2 %}Problems{% endblock %}
+
 {% block content %}
-  <h2>Problems</h2>
   <table>
     <tr>
       <th>ID</th>
@@ -21,4 +23,4 @@
     </tr>
 {% endfor %}
   </table>
-{% endblock %}
+{% endblock content %}

@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Toy Online Judge{% endblock %}</title>
   <link rel="stylesheet" href="/default.css" title="Default Style">
-{% endblock %}
+{% endblock head %}
 </head>
 <body>
   <h1>Toy Online Judge</h1>
@@ -23,13 +23,18 @@
     <a href="{{ path_for('login') }}">Log in</a>
     <a href="{{ path_for('signup') }}">Sign up</a>
 {% endif %}
-{% endblock %}
+{% endblock nav %}
   </nav>
 {% for message in messages %}
 {% include "message.html" %}
 {% endfor %}
+  <h2>{% block h2 %}Please override <code>block h2</code>{% endblock %}</h2>
+  <nav>
+{% block nav2 %}
+{% endblock nav2 %}
+  </nav>
 {% block content %}
   Please override <code>block content</code>.
-{% endblock %}
+{% endblock content %}
 </body>
 </html>

@@ -3,13 +3,14 @@
 
 {% block title %}New Test Case of {{ problem.title }} - {{ parent() }}{% endblock %}
 
-{% block nav %}
+{% block h2 %}New Test Case of {{ problem.title }}{% endblock %}
+
+{% block nav2 %}
 {{ parent() }}{##}
     <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
-{% endblock %}
+{% endblock nav2 %}
 
 {% block content %}
-  <h2>New Test Case of {{ problem.title }}</h2>
   <form method="post"><fieldset>
     <div>
       <label>
@@ -42,4 +43,4 @@
       <input type="submit" value="Save">
     </div>
   </fieldset></form>
-{% endblock %}
+{% endblock content %}

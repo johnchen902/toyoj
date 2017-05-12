@@ -3,12 +3,13 @@
 
 {% block title %}View Source for {{ problem.title }} - {{ parent() }}{% endblock %}
 
-{% block nav %}
+{% block h2 %}View Source for {{ problem.title }}{% endblock %}
+
+{% block nav2 %}
 {{ parent() }}{##}
     <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
-{% endblock %}
+{% endblock nav2 %}
 
 {% block content %}
-  <h2>View Source for {{ problem.title }}</h2>
   <pre><code>{{ problem.statement }}</pre></code>
-{% endblock %}
+{% endblock content %}

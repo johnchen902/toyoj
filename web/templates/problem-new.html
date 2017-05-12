@@ -3,8 +3,9 @@
 
 {% block title %}New Problem - {{ parent() }}{% endblock %}
 
+{% block h2 %}New Problem{% endblock %}
+
 {% block content %}
-  <h2>New Problem</h2>
   <form method="post"><fieldset>
     <div>
       <label>
@@ -21,4 +22,4 @@
       <input type="submit" value="Save">
     </div>
   </fieldset></form>
-{% endblock %}
+{% endblock content %}

@@ -2,14 +2,14 @@
 {% extends "base.html" %}
 
 {% block title %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
+{% block h2 %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}{% endblock %}
 
-{% block nav %}
+{% block nav2 %}
 {{ parent() }}{##}
     <a href="{{ path_for('test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">View Test Case</a>
-{% endblock %}
+{% endblock nav2 %}
 
 {% block content %}
-  <h2>Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}</h2>
   <form method="post"><fieldset>
     <div>
       <label>
@@ -42,4 +42,4 @@
       <input type="submit" value="Save">
     </div>
   </fieldset></form>
-{% endblock %}
+{% endblock content %}

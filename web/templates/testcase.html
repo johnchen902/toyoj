@@ -2,15 +2,16 @@
 {% extends "base.html" %}
 {% block title %}Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
 
-{% block nav %}
+{% block h2 %}Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}{% endblock %}
+
+{% block nav2 %}
 {{ parent() }}{##}
 {% if testcase.canedit %}
     <a href="{{ path_for('edit-test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">Edit</a>
 {% endif %}
-{% endblock %}
+{% endblock nav2 %}
 
 {% block content %}
-  <h2>Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}</h2>
   <h3>General</h3>
   <table>
     <tr>
@@ -30,4 +31,4 @@
   <pre><code>{{ testcase.input }}</code></pre>
   <h3>Output</h3>
   <pre><code>{{ testcase.output }}</code></pre>
-{% endblock %}
+{% endblock content %}
