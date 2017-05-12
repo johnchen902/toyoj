@@ -96,7 +96,6 @@ $app->post("/login", function (Request $request, Response $response) {
 $app->get("/logout", function (Request $request, Response $response) {
     return $this->view->render($response, "logout.html");
 })->setName("logout");
-
 $app->post("/logout", function (Request $request, Response $response) {
     if(isset($this->session["login"])) {
         unset($this->session["login"]);
@@ -440,9 +439,8 @@ $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Reques
 $app->get("/signup", function (Request $request, Response $response) {
     return $this->view->render($response, "signup.html");
 })->setName("signup");
-
 $app->post("/signup", function (Request $request, Response $response) {
-    return $response;
+    return redirect($response, 303, $this->router->pathFor("signup"));
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
