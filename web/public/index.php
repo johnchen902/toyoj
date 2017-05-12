@@ -294,6 +294,32 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
     return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
 });
 
+$app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+});
+
+$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+});
+
+$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $subtaskid = $args["subtaskid"];
+    return $response;
+});
+$app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    $subtaskid = $args["subtaskid"];
+    return $response;
+});
+
+$app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
+    $pid = $args["pid"];
+    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#test-cases");
+});
+
 $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
