@@ -25,10 +25,8 @@
 {% endif %}
 {% endblock %}
   </nav>
-{% for msg in messages %}
-  <div class="message">
-    {{ msg }}
-  </div>
+{% for message in messages %}
+{% include "message.html" %}
 {% endfor %}
 {% block content %}
   Please override <code>block content</code>.

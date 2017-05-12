@@ -57,9 +57,7 @@
 {% if login %}
   <h3>Submission Area</h3>
 {% if not problem.ready %}
-  <div class="message">
-    This problem is not ready for submission.
-  </div>
+{% include "message.html" with {"message" : "This problem is not ready for submission."} %}
 {% endif %}
 {% if problem.cansubmit %}
   <form method="post"><fieldset>

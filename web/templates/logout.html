@@ -1,15 +1,12 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set canlogout = login %}
 {% block title %}Log Out - {{ parent() }}{% endblock %}
 {% block content %}
   <h2>Log Out</h2>
-{% if not canlogout %}
-  <div class="message">
-    You are not logged in.
-  </div>
+{% if not login %}
+{% include "message.html" with {"message" : "You are not logged in."} %}
 {% endif %}
-  <form method="post"><fieldset{% if not canlogout %} disabled{% endif %}>
+  <form method="post"><fieldset{% if not login %} disabled{% endif %}>
     <div>
       <input type="submit" value="Log out">
     </div>

@@ -1,15 +1,12 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set canlogin = not login %}
 {% block title %}Log In - {{ parent() }}{% endblock %}
 {% block content %}
   <h2>Log In</h2>
-{% if not canlogin %}
-  <div class="message">
-    You are already logged in.
-  </div>
+{% if login %}
+{% include "message.html" with {"message" : "You are already logged in."} %}
 {% endif %}
-  <form method="post"><fieldset{% if not canlogin %} disabled{% endif %}>
+  <form method="post"><fieldset{% if login %} disabled{% endif %}>
     <div>
       <label>
         Username: <input type="text" name="username" autofocus>
