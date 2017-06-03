@@ -17,7 +17,7 @@ class PermissionChecker {
         $login = $this->getLogin();
         if(!$login)
             return false;
-        $stmt = $this->prepare("SELECT 1 FROM problems WHERE pid = :pid AND (ready OR manager = :login)");
+        $stmt = $this->prepare("SELECT 1 FROM problems WHERE id = :pid AND (ready OR manager_id = :login)");
         $stmt->execute(array(":pid" => $pid, ":login" => $login));
         return $stmt->rowCount() > 0;
     }
@@ -26,7 +26,7 @@ class PermissionChecker {
         $login = $this->getLogin();
         if(!$login)
             return false;
-        $stmt = $this->prepare("SELECT 1 FROM permissions WHERE uid = :login");
+        $stmt = $this->prepare("SELECT 1 FROM user_permissions WHERE user_id = :login AND permission_name = 'newproblem'");
         $stmt->execute(array(":login" => $login));
         return $stmt->rowCount() > 0;
     }
@@ -34,7 +34,7 @@ class PermissionChecker {
         $login = $this->getLogin();
         if(!$login)
             return false;
-        $stmt = $this->prepare("SELECT 1 FROM problems WHERE pid = :pid AND manager = :login");
+        $stmt = $this->prepare("SELECT 1 FROM problems WHERE id = :pid AND manager_id = :login");
         $stmt->execute(array(":pid" => $pid, ":login" => $login));
         return $stmt->rowCount() > 0;
     }

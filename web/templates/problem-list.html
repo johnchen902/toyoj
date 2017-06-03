@@ -7,7 +7,7 @@
 {% block nav2 %}
 {{ parent() }}{##}
 {% if canaddnewproblem %}
-    <a href="{{ path_for('new-problem') }}">New Problem</a>
+    <a href="{{ path_for('problem-new') }}">New Problem</a>
 {% endif %}
 {% endblock nav2 %}
 
@@ -22,10 +22,10 @@
     </tr>
 {% for prob in problems %}
     <tr>
-      <td>{{ prob.pid }}</td>
-      <td><a href="{{ path_for('problem', { 'pid': prob.pid }) }}">{{ prob.title }}</a></td>
-      <td><time datetime="{{ prob.create_date|date('c') }}">{{ prob.create_date|date('Y-m-d') }}</time></td>
-      <td><a href="{{ path_for('user', {'uid': prob.manager }) }}">{{ prob.manager_name }}</a></td>
+      <td>{{ prob.id }}</td>
+      <td><a href="{{ path_for('problem', { 'pid': prob.id }) }}">{{ prob.title }}</a></td>
+      <td><time datetime="{{ prob.create_time|date('c') }}">{{ prob.create_time|date('Y-m-d') }}</time></td>
+      <td><a href="{{ path_for('user', {'uid': prob.manager_id }) }}">{{ prob.manager_name }}</a></td>
       <td>{{ prob.ready ? "Ready" : "Not Ready"}}</td>
     </tr>
 {% endfor %}

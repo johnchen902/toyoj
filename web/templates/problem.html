@@ -12,18 +12,18 @@
 {% block nav2 %}
 {{ parent() }}{##}
 {% if problem.canedit %}
-    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit</a>
+    <a href="{{ path_for('problem-edit', { 'pid': problem.id }) }}">Edit</a>
 {% else %}
-    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">View Source</a>
+    <a href="{{ path_for('problem-edit', { 'pid': problem.id }) }}">View Source</a>
 {% endif %}
 {% endblock nav2 %}
 
 {% block content %}
   {{ problem.statement|markdown }}
   <h3>Creation date</h3>
-  <time datetime="{{ problem.create_date|date('c') }}">{{ problem.create_date|date('Y-m-d') }}</time>
+  <time datetime="{{ problem.create_time|date('c') }}">{{ problem.create_time|date('Y-m-d') }}</time>
   <h3>Manager</h3>
-  <a href="{{ path_for('user', {'uid': problem.manager }) }}">{{ problem.manager_name }}</a><br>
+  <a href="{{ path_for('user', {'uid': problem.manager_id }) }}">{{ problem.manager_name }}</a><br>
   <h3 id="subtasks">Subtasks</h3>
   <table>
     <tr>
@@ -33,9 +33,9 @@
     </tr>
 {% for subt in subtasks %}
     <tr>
-      <td>{{ subt.subtaskid }}</td>
+      <td>{{ subt.id }}</td>
       <td>{{ subt.score }}</td>
-      <td>{{ subt.testcaseids }}</td>
+      <td>{{ subt.testcase_ids }}</td>
     </tr>
 {% endfor %}
   </table>
@@ -46,13 +46,15 @@
       <th>Time</th>
       <th>Memory</th>
       <th>Checker</th>
+      <th>Subtasks</th>
     </tr>
 {% for case in testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'pid': problem.pid, 'testid': case.testcaseid }) }}">{{ case.testcaseid }}</a></td>
+      <td><a href="{{ path_for('test', { 'pid': problem.id, 'testid': case.id }) }}">{{ case.id }}</a></td>
       <td>{{ case.time_limit }} ms</td>
       <td>{{ case.memory_limit }} KiB</td>
-      <td>{{ case.checker }}</td>
+      <td>{{ case.checker_name }}</td>
+      <td>{{ case.subtask_ids }}</td>
     </tr>
 {% endfor %}
   </table>

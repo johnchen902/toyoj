@@ -61,166 +61,39 @@ $container["forms"] = function ($container) {
 };
 
 $app->get("/", function (Request $request, Response $response) {
-    return $this->view->render($response, "index.html");
+    return \Toyoj\Controllers\Index::get($this, $request, $response);
 })->setName("index");
 
 $app->get("/login", function (Request $request, Response $response) {
-    return $this->view->render($response, "login.html");
+    return \Toyoj\Controllers\Login::get($this, $request, $response);
 })->setName("login");
 $app->post("/login", function (Request $request, Response $response) {
-    if($this->session["login"] ?? false) {
-        $this->messages[] = "Already logged in";
-        return redirect($response, 303, $this->router->pathFor("index"));
-    }
-
-    $username = $request->getParsedBodyParam("username");
-    $password = $request->getParsedBodyParam("password");
-    $stmt = $this->db->prepare("SELECT uid, hash FROM users JOIN passwords USING (uid) WHERE username=:username");
-    $stmt->execute(array("username" => $username));
-    $user = $stmt->fetch();
-    if(!$user) {
-        $this->messages[] = "Incorrect username or password";
-        return redirect($response, 303, $this->router->pathFor("login"));
-    }
-    if(!password_verify($password, $user["hash"])) {
-        $this->messages[] = "Incorrect username or password";
-        return redirect($response, 303, $this->router->pathFor("login"));
-    }
-
-    $this->session["login"] = $user["uid"];
-
-    $this->messages[] = "Logged in successfully";
-    return redirect($response, 303, $this->router->pathFor("index"));
+    return \Toyoj\Controllers\Login::post($this, $request, $response);
 });
 
 $app->get("/logout", function (Request $request, Response $response) {
-    return $this->view->render($response, "logout.html");
+    return \Toyoj\Controllers\Logout::get($this, $request, $response);
 })->setName("logout");
 $app->post("/logout", function (Request $request, Response $response) {
-    if(isset($this->session["login"])) {
-        unset($this->session["login"]);
-        $this->messages[] = "Logged out successfully";
-    } else {
-        $this->messages[] = "You are not logged in";
-    }
-    return redirect($response, 303, $this->router->pathFor("login"));
+    return \Toyoj\Controllers\Logout::post($this, $request, $response);
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
-    $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
-    $canaddnewproblem = $this->permissions->checkNewProblem();
-    return $this->view->render($response, "problems.html",
-        array(
-            "problems" => $problems,
-            "canaddnewproblem" => $canaddnewproblem,
-        ));
+    return \Toyoj\Controllers\ProblemList::get($this, $request, $response);
 })->setName("problem-list");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
-    if(!$this->permissions->checkNewProblem()) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-    return $this->view->render($response, "problem-new.html");
-})->setName("new-problem");
+    return \Toyoj\Controllers\ProblemNew::get($this, $request, $response);
+})->setName("problem-new");
 $app->post("/problems/new", function (Request $request, Response $response) {
-    $login = $this->session["login"];
-    $title = $request->getParsedBodyParam("title");
-    $statement = $request->getParsedBodyParam("statement");
-
-    $statement = str_replace("\r\n", "\n", $statement);
-
-    $errors = $this->forms->validateProblem($title, $statement);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("new-problem"));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkNewProblem()) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to add new problem.";
-        return redirect($response, 303, $this->router->pathFor("problem-list"));
-    }
-    $stmt = $this->db->prepare("INSERT INTO problems (title, statement, manager) VALUES (:title, :statement, :login) RETURNING pid");
-    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":login" => $login));
-    $pid = $stmt->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$pid) {
-        $this->messages[] = "Add new problem failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("new-problem"));
-    }
-
-    $pid = $pid["pid"];
-    $this->messages[] = "New problem added.";
-    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
+    return \Toyoj\Controllers\ProblemNew::post($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    $problem["cansubmit"] = $this->permissions->checkSubmit($pid);
-    $problem["canedit"] = $this->permissions->checkEditProblem($pid);
-
-    $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
-    $subtasks->execute(array(":pid" => $pid));
-    $subtasks = $subtasks->fetchAll();
-    foreach($subtasks as &$subtask) {
-        $tcids = array_map("intval", explode(",", substr($subtask["testcaseids"], 1, -1)));
-        sort($tcids);
-        $subtask["testcaseids"] = implode(", ", $tcids);
-    }
-
-    $testcases = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid ORDER BY testcaseid");
-    $testcases->execute(array(":pid" => $pid));
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "problem.html",
-        array(
-            "problem" => $problem,
-            "subtasks" => $subtasks,
-            "testcases" => $testcases,
-        )
-    );
+$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::get($this, $request, $response);
 })->setName("problem");
-$app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"] ?? false;
-    $language = $request->getParsedBodyParam("language");
-    $code = $request->getParsedBodyParam("code");
-    $code = str_replace("\r\n", "\n", $code);
-
-    $errors = $this->forms->validateSubmission($language, $code);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkSubmit($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to submit on this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $sid = $this->db->prepare("INSERT INTO submissions(pid, submitter, language, code) VALUES (:pid, :submitter, :language, :code) RETURNING sid");
-    $sid->execute(array(":pid" => $pid, ":submitter" => $login, ":language" => $language, ":code" => $code));
-    $sid = $sid->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$sid) {
-        $this->messages[] = "Submission failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("submission-list"));
-    }
-    $sid = $sid["sid"];
-
-    return redirect($response, 303, $this->router->pathFor("submission", array("sid" => $sid)));
+$app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::post($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
@@ -256,7 +129,7 @@ $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $r
             "testcases" => $testcases,
         )
     );
-})->setName("edit-problem");
+})->setName("problem-edit");
 $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     $pid = $args["pid"];
     $login = $this->session["login"];
