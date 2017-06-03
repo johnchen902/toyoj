@@ -3,7 +3,7 @@ namespace Toyoj\Controllers;
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 use \redirect as redirect;
-class Problem {
+class ProblemEdit {
     public static function get($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
         $q = $c->qf->newSelect()
@@ -23,8 +23,9 @@ class Problem {
         $problem = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        $problem["cansubmit"] = self::checkSubmit($c, $pid);
-        $problem["canedit"] = ProblemEdit::checkEdit($c, $pid);
+        if(!self::checkEdit($c, $pid))
+            return $c->view->render($response, "problem-source.html",
+                ["problem" => $problem]);
 
         $q = $c->qf->newSelect()
             ->cols(["id", "score"])
@@ -65,7 +66,7 @@ class Problem {
         foreach($testcases as &$testcase)
             $testcase["subtask_ids"] = implode($testcase["subtask_ids"], ", ");
 
-        return $c->view->render($response, "problem.html", [
+        return $c->view->render($response, "problem-edit.html", [
             "problem" => $problem,
             "subtasks" => $subtasks,
             "testcases" => $testcases,
@@ -74,43 +75,52 @@ class Problem {
     public static function post($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
         $login = $c->session["login"] ?? false;
-        $language = $request->getParsedBodyParam("language");
-        $code = $request->getParsedBodyParam("code");
-        $code = str_replace("\r\n", "\n", $code);
+        $title = $request->getParsedBodyParam("title");
+        $statement = $request->getParsedBodyParam("statement");
+        $ready = $request->getParsedBodyParam("ready");
 
-        $errors = $c->forms->validateSubmission($language, $code);
+        $statement = str_replace("\r\n", "\n", $statement);
+        $ready = $ready === "ready";
+
+        $errors = $c->forms->validateProblem($title, $statement);
         if($errors) {
             foreach($errors as $e)
                 $c->messages[] = $e;
             return redirect($response, 303,
-                $c->router->pathFor("problem", ["pid" => $pid]));
+                $c->router->pathFor("problem-edit", ["pid" => $pid]));
         }
 
         $c->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-        if(!self::checkSubmit($c, $pid)) {
+        if(!self::checkEdit($c, $pid)) {
             $c->db->exec("ROLLBACK");
-            $c->messages[] = "You are not allowed to submit on this problem.";
+            $c->messages[] = "You are not allowed to edit c problem.";
             return redirect($response, 303, 
-                $c->router->pathFor("problem", ["pid" => $pid]));
+                $c->router->pathFor("problem-edit", ["pid" => $pid]));
         }
 
-        $q = $c->qf->newInsert()
-            ->into("submissions")
+        $q = $c->qf->newUpdate()
+            ->table("problems")
             ->cols([
-                "problem_id" => $pid,
-                "submitter_id" => $login,
-                "language_name" => $language,
-                "code" => $code,
+                "title" => $title,
+                "statement" => $statement,
+                "ready" => $ready,
             ])
-            ->returning(["id"])
+            ->where("id = ?", $pid)
             ;
-        $id = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
+        $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
         $c->db->exec("COMMIT");
 
+        if($cnt <= 0) {
+            $c->messages[] = "Edit failed for unknown reason";
+            return redirect($response, 303,
+                $c->router->pathFor("problem-edit", ["pid" => $pid]));
+        }
+
+        $c->messages[] = "Problem edited.";
         return redirect($response, 303,
-            $c->router->pathFor("submission", ["sid" => $id]));
+            $c->router->pathFor("problem", ["pid" => $pid]));
     }
-    public static function checkSubmit($c, $problem_id) {
+    public static function checkEdit($c, $problem_id) {
         $login = $c->session["login"];
         if(!$login)
             return false;
@@ -118,7 +128,7 @@ class Problem {
             ->cols(["1"])
             ->from("problems")
             ->where("id = ?", $problem_id)
-            ->where("ready OR (manager_id = ?)", $login)
+            ->where("manager_id = ?", $login)
             ;
         $one = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($one);

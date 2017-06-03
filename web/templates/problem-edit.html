@@ -7,9 +7,9 @@
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
-    <a href="{{ path_for('new-subtask', { 'pid': problem.pid }) }}">New Subtask</a>
-    <a href="{{ path_for('new-test', { 'pid': problem.pid }) }}">New Test Case</a>
+    <a href="{{ path_for('problem', { 'pid': problem.id }) }}">View Problem</a>
+    <a href="{{ path_for('subtask-new', { 'pid': problem.id }) }}">New Subtask</a>
+    <a href="{{ path_for('test-new', { 'pid': problem.id }) }}">New Test Case</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -43,9 +43,9 @@
     </tr>
 {% for subt in subtasks %}
     <tr>
-      <td><a href="{{ path_for('edit-subtask', { 'pid': problem.pid, 'subtaskid': subt.subtaskid }) }}">{{ subt.subtaskid }}</a></td>
+      <td><a href="{{ path_for('subtask-edit', { 'pid': problem.id, 'subtaskid': subt.id }) }}">{{ subt.id }}</a></td>
       <td>{{ subt.score }}</td>
-      <td>{{ subt.testcaseids }}</td>
+      <td>{{ subt.testcase_ids }}</td>
     </tr>
 {% endfor %}
   </table>
@@ -56,13 +56,15 @@
       <th>Time</th>
       <th>Memory</th>
       <th>Checker</th>
+      <th>Subtasks</th>
     </tr>
 {% for case in testcases %}
     <tr>
-      <td><a href="{{ path_for('edit-test', { 'pid': problem.pid, 'testid': case.testcaseid }) }}">{{ case.testcaseid }}</a></td>
+      <td><a href="{{ path_for('test-edit', { 'pid': problem.id, 'testid': case.id }) }}">{{ case.id }}</a></td>
       <td>{{ case.time_limit }} ms</td>
       <td>{{ case.memory_limit }} KiB</td>
-      <td>{{ case.checker }}</td>
+      <td>{{ case.checker_name }}</td>
+      <td>{{ case.subtask_ids }}</td>
     </tr>
 {% endfor %}
   </table>
