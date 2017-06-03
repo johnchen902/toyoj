@@ -1,6 +1,8 @@
 <?php
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Aura\Sql\ExtendedPdo;
+use Aura\SqlQuery\QueryFactory;
 
 set_include_path(get_include_path() . PATH_SEPARATOR . "../classes/");
 spl_autoload_register();
@@ -31,10 +33,10 @@ $container["view"] = function ($container) {
     return $view;
 };
 $container["db"] = function ($container) {
-    $pdo = new PDO("pgsql:dbname=toyoj user=toyojweb");
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    return $pdo;
+    return new ExtendedPdo("pgsql:dbname=toyoj user=toyojweb");
+};
+$container["qf"] = function ($container) {
+    return new QueryFactory("pgsql");
 };
 $container["errorview"] = function ($container) {
     return function (Response $response, int $status, string $message) use ($container) {

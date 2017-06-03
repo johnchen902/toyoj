@@ -6,29 +6,65 @@ use \redirect as redirect;
 class Problem {
     public static function get($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
-        $problem = $c->db->prepare("SELECT p.id, p.statement, p.title, p.create_time, p.manager_id, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager_id = u.id AND p.id = :pid");
-        $problem->execute([":pid" => $pid]);
-        $problem = $problem->fetch();
-        if(!$problem) {
+        $q = $c->qf->newSelect()
+            ->cols([
+                "p.id",
+                "p.title",
+                "p.statement",
+                "p.create_time",
+                "p.manager_id",
+                "u.username AS manager_name",
+                "p.ready"
+            ])
+            ->from("problems AS p")
+            ->innerJoin("users AS u", "p.manager_id = u.id")
+            ->orderBy(["p.id"])
+            ->where("p.id = ?", $pid)
+            ;
+        $problem = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
+        if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        }
         $problem["cansubmit"] = $c->permissions->checkSubmit($pid);
         $problem["canedit"] = $c->permissions->checkEditProblem($pid);
 
-        $subtasks = $c->db->prepare("SELECT id, score FROM subtasks WHERE problem_id = :pid ORDER BY id");
-        $subtasks->execute(array(":pid" => $pid));
-        $subtasks = $subtasks->fetchAll();
+        $q = $c->qf->newSelect()
+            ->cols(["id", "score"])
+            ->from("subtasks")
+            ->where("problem_id = ?", $pid)
+            ->orderBy(["id"])
+            ;
+        $subtasks = $c->db->fetchAssoc($q->getStatement(), $q->getBindValues());
 
-        $testcases = $c->db->prepare("SELECT id, time_limit, memory_limit, checker_name FROM testcases WHERE problem_id = :pid ORDER BY id");
-        $testcases->execute(array(":pid" => $pid));
-        $testcases = $testcases->fetchAll();
+        $q = $c->qf->newSelect()
+            ->cols(["id", "time_limit", "memory_limit", "checker_name"])
+            ->from("testcases")
+            ->where("problem_id = ?", $pid)
+            ->orderBy(["id"])
+            ;
+        $testcases = $c->db->fetchAssoc($q->getStatement(), $q->getBindValues());
 
-        foreach($subtasks as &$subtask) {
-            $subtask["testcase_ids"] = "under construction";
+        $q = $c->qf->newSelect()
+            ->cols(["subtask_id", "testcase_id"])
+            ->from("subtask_testcases")
+            ->where("problem_id = ?", $pid)
+            ->orderBy(["subtask_id", "testcase_id"])
+            ;
+        $rels = $c->db->fetchAll($q->getStatement(), $q->getBindValues());
+
+        foreach($subtasks as &$subtask)
+            $subtask["testcase_ids"] = [];
+        foreach($testcases as &$testcase)
+            $testcase["subtask_ids"] = [];
+        foreach($rels as $rel) {
+            $subtask_id = $rel["subtask_id"];
+            $testcase_id = $rel["testcase_id"];
+            $subtasks[$subtask_id]["testcase_ids"][] = $testcase_id;
+            $testcases[$testcase_id]["subtask_ids"][] = $subtask_id;
         }
-        foreach($testcases as &$testcase) {
-            $testcase["subtask_ids"] = "under construction";
-        }
+        foreach($subtasks as &$subtask)
+            $subtask["testcase_ids"] = implode($subtask["testcase_ids"], ", ");
+        foreach($testcases as &$testcase)
+            $testcase["subtask_ids"] = implode($testcase["subtask_ids"], ", ");
 
         return $c->view->render($response, "problem.html", [
             "problem" => $problem,
@@ -58,18 +94,22 @@ class Problem {
             return redirect($response, 303, 
                 $c->router->pathFor("problem", ["pid" => $pid]));
         }
-        $sid = $c->db->prepare("INSERT INTO submissions(problem_id, submitter_id, language_name, code) VALUES (:pid, :submitter, :language, :code) RETURNING id");
-        $sid->execute([":pid" => $pid, ":submitter" => $login, ":language" => $language, ":code" => $code]);
-        $sid = $sid->fetch();
+
+        $q = $c->qf->newInsert()
+            ->into("submissions")
+            ->cols([
+                "problem_id" => $pid,
+                "submitter_id" => $login,
+                "language_name" => $language,
+                "code" => $code,
+            ])
+            ->returning(["id"])
+            ;
+        $id = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         $c->db->exec("COMMIT");
 
-        if(!$sid) {
-            $c->messages[] = "Submission failed for unknown reason";
-            return redirect($response, 303, $c->router->pathFor("submission-list"));
-        }
-        $sid = $sid["id"];
-
-        return redirect($response, 303, $c->router->pathFor("submission", array("sid" => $sid)));
+        return redirect($response, 303,
+            $c->router->pathFor("submission", ["sid" => $id]));
     }
 };
 ?>

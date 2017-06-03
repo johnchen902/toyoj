@@ -31,25 +31,22 @@ class ProblemNew {
             $c->messages[] = "You are not allowed to create new problem.";
             return redirect($response, 303, $c->router->pathFor("problem-new"));
         }
-        $stmt = $c->db->prepare("INSERT INTO problems (title, statement, manager_id, ready) VALUES (:title, :statement, :login, FALSE) RETURNING id");
-        $stmt->execute([
-            ":title" => $title,
-            ":statement" => $statement,
-            ":login" => $login,
-        ]);
-        $pid = $stmt->fetch();
+        $q = $c->qf->newInsert()
+            ->into("problems")
+            ->cols([
+                "title" => $title,
+                "statement" => $statement,
+                "manager_id" => $login,
+                "ready" => false,
+            ])
+            ->returning(["id"])
+            ;
+        $id = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         $c->db->exec("COMMIT");
 
-        if(!$pid) {
-            $c->messages[] = "Add new problem failed for unknown reason";
-            return redirect($response, 303,
-                $c->router->pathFor("problem-new"));
-        }
-
-        $pid = $pid["id"];
         $c->messages[] = "New problem added.";
         return redirect($response, 303,
-            $c->router->pathFor("problem", array("pid" => $pid)));
+            $c->router->pathFor("problem", ["pid" => $id]));
     }
 };
 ?>
