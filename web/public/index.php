@@ -55,9 +55,6 @@ $container["session"] = function ($container) {
 $container["messages"] = function ($container) {
     return new \Toyoj\MessageWrapper($container->session);
 };
-$container["permissions"] = function ($container) {
-    return new \Toyoj\PermissionChecker($container);
-};
 $container["forms"] = function ($container) {
     return new \Toyoj\FormValidator();
 };

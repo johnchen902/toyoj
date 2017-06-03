@@ -5,9 +5,8 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use \redirect as redirect;
 class ProblemNew {
     public static function get($c, Request $request, Response $response) {
-        if(!$c->permissions->checkNewProblem()) {
+        if(!self::checkNewProblem($c))
             return ($c->errorview)($response, 403, "Forbidden");
-        }
         return $c->view->render($response, "problem-new.html");
     }
     public static function post($c, Request $request, Response $response) {
@@ -26,7 +25,7 @@ class ProblemNew {
         }
 
         $c->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-        if(!$c->permissions->checkNewProblem()) {
+        if(!self::checkNewProblem($c)) {
             $c->db->exec("ROLLBACK");
             $c->messages[] = "You are not allowed to create new problem.";
             return redirect($response, 303, $c->router->pathFor("problem-new"));
@@ -47,6 +46,19 @@ class ProblemNew {
         $c->messages[] = "New problem added.";
         return redirect($response, 303,
             $c->router->pathFor("problem", ["pid" => $id]));
+    }
+    public static function checkNewProblem($c) {
+        $login = $c->session["login"];
+        if(!$login)
+            return false;
+        $q = $c->qf->newSelect()
+            ->cols(["1"])
+            ->from("user_permissions")
+            ->where("user_id = ?", $login)
+            ->where("permission_name = 'newproblem'")
+            ;
+        $one = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
+        return boolval($one);
     }
 };
 ?>

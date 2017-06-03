@@ -24,8 +24,8 @@ class Problem {
         $problem = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        $problem["cansubmit"] = $c->permissions->checkSubmit($pid);
-        $problem["canedit"] = $c->permissions->checkEditProblem($pid);
+        $problem["cansubmit"] = self::checkSubmit($c, $pid);
+        $problem["canedit"] = false;
 
         $q = $c->qf->newSelect()
             ->cols(["id", "score"])
@@ -88,7 +88,7 @@ class Problem {
         }
 
         $c->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-        if(!$c->permissions->checkSubmit($pid)) {
+        if(!self::checkSubmit($c, $pid)) {
             $c->db->exec("ROLLBACK");
             $c->messages[] = "You are not allowed to submit on this problem.";
             return redirect($response, 303, 
@@ -110,6 +110,19 @@ class Problem {
 
         return redirect($response, 303,
             $c->router->pathFor("submission", ["sid" => $id]));
+    }
+    public static function checkSubmit($c, $problem_id) {
+        $login = $c->session["login"];
+        if(!$login)
+            return false;
+        $q = $c->qf->newSelect()
+            ->cols(["1"])
+            ->from("problems")
+            ->where("id = ?", $problem_id)
+            ->where("ready OR (manager_id = ?)", $login)
+            ;
+        $one = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
+        return boolval($one);
     }
 };
 ?>

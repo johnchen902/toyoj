@@ -18,7 +18,7 @@ class ProblemList {
             ->orderBy(["p.id"])
             ;
         $problems = $c->db->fetchAll($q->getStatement(), $q->getBindValues());
-        $canaddnewproblem = $c->permissions->checkNewProblem();
+        $canaddnewproblem = ProblemNew::checkNewProblem($c);
         return $c->view->render($response, "problem-list.html", [
             "problems" => $problems,
             "canaddnewproblem" => $canaddnewproblem,
