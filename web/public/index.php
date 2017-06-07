@@ -78,28 +78,28 @@ $app->post("/logout", function (Request $request, Response $response) {
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\ProblemList::get($this, $request, $response);
+    return \Toyoj\Controllers\Problem::showAll($this, $request, $response);
 })->setName("problem-list");
 
 $app->get("/problems/new", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\ProblemNew::get($this, $request, $response);
+    return \Toyoj\Controllers\Problem::showCreatePage($this, $request, $response);
 })->setName("problem-new");
 $app->post("/problems/new", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\ProblemNew::post($this, $request, $response);
+    return \Toyoj\Controllers\Problem::create($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Problem::get($this, $request, $response);
+    return \Toyoj\Controllers\Problem::show($this, $request, $response);
 })->setName("problem");
 $app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Problem::post($this, $request, $response);
+    return \Toyoj\Controllers\Problem::submit($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\ProblemEdit::get($this, $request, $response);
+    return \Toyoj\Controllers\Problem::showEditPage($this, $request, $response);
 })->setName("problem-edit");
 $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\ProblemEdit::post($this, $request, $response);
+    return \Toyoj\Controllers\Problem::edit($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response) {

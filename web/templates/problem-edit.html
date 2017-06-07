@@ -41,11 +41,11 @@
       <th>Score</th>
       <th>Test Cases</th>
     </tr>
-{% for subt in subtasks %}
+{% for subtask in problem.subtasks %}
     <tr>
-      <td><a href="{{ path_for('subtask-edit', { 'pid': problem.id, 'subtaskid': subt.id }) }}">{{ subt.id }}</a></td>
-      <td>{{ subt.score }}</td>
-      <td>{{ subt.testcase_ids }}</td>
+      <td><a href="{{ path_for('subtask-edit', { 'pid': problem.id, 'subtaskid': subtask.id }) }}">{{ subtask.id }}</a></td>
+      <td>{{ subtask.score }}</td>
+      <td>{{ subtask.testcase_ids }}</td>
     </tr>
 {% endfor %}
   </table>
@@ -58,13 +58,13 @@
       <th>Checker</th>
       <th>Subtasks</th>
     </tr>
-{% for case in testcases %}
+{% for testcase in problem.testcases %}
     <tr>
-      <td><a href="{{ path_for('test-edit', { 'pid': problem.id, 'testid': case.id }) }}">{{ case.id }}</a></td>
-      <td>{{ case.time_limit }} ms</td>
-      <td>{{ case.memory_limit }} KiB</td>
-      <td>{{ case.checker_name }}</td>
-      <td>{{ case.subtask_ids }}</td>
+      <td><a href="{{ path_for('test-edit', { 'pid': problem.id, 'testid': testcase.id }) }}">{{ testcase.id }}</a></td>
+      <td>{{ testcase.time_limit }} ms</td>
+      <td>{{ testcase.memory_limit }} KiB</td>
+      <td>{{ testcase.checker_name }}</td>
+      <td>{{ testcase.subtask_ids }}</td>
     </tr>
 {% endfor %}
   </table>

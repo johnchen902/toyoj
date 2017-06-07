@@ -14,18 +14,6 @@ class FormValidator {
         }
     }
 
-    public function validateSubmission($lang, $code) {
-        $e = array();
-        $this->validateString($e, $lang, "Language", 1, 32);
-        $this->validateString($e, $code, "Code", 1, 65536);
-        return $e;
-    }
-    public function validateProblem($title, $statement) {
-        $e = array();
-        $this->validateString($e, $title, "Title", 1, 128);
-        $this->validateString($e, $statement, "Statement", 1, 65536);
-        return $e;
-    }
     public function validateSubtask($score, $testcaseids, $alltestcaseids) {
         $e = array();
         if($score < 1)
