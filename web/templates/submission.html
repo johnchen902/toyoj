@@ -1,9 +1,9 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% set subm = submission %}
-{% block title %}Submissions #{{subm.sid}} - {{ parent() }}{% endblock %}
+{% set s = submission %}
+{% block title %}Submissions #{{s.id}} - {{ parent() }}{% endblock %}
 
-{% block h2 %}Submission #{{subm.sid}}{% endblock %}
+{% block h2 %}Submission #{{s.id}}{% endblock %}
 
 {% block content %}
   <h3>General</h3>
@@ -11,7 +11,7 @@
     <tr>
       <th>Problem</th>
       <th>Submitter</th>
-      <th>Verdict</th>
+      <th>Accepted</th>
       <th>Score</th>
       <th>Time</th>
       <th>Memory</th>
@@ -19,29 +19,37 @@
       <th>Judge Time</th>
     </tr>
     <tr>
-      <td><a href="{{ path_for('problem', { 'pid': subm.pid }) }}">{{ subm.title }}</a></td>
-      <td><a href="{{ path_for('user', {'uid': subm.submitter }) }}">{{ subm.submitter_name }}</a></td>
-      <td>{% if not subm.accepted is null %}{{ subm.accepted ? "Yes" : (subm.rejected ? "No" : "Unsure") }}{% endif %}</td>
-      <td>{% if not subm.fullscore is null %}{% if subm.minscore == subm.maxscore %}{{ subm.minscore }}{% else %}({{ subm.minscore }} &ndash; {{subm.maxscore}}){% endif %} / {{ subm.fullscore }}{% endif %}</td>
-      <td>{% if not subm.time is null %}{{ subm.time }} ms {% endif %}</td>
-      <td>{% if not subm.memory is null %}{{ subm.memory }} KiB{% endif %}</td>
-      <td><time datetime="{{ subm.submit_time|date('c') }}">{{ subm.submit_time|date('Y-m-d H:i:s') }}</time></td>
-      <td>{% if not subm.judge_time is null %}<time datetime="{{ subm.judge_time|date('c') }}">{{ subm.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+      <td><a href="{{ path_for('problem', { 'pid': s.problem_id }) }}">{{ s.problem_title }}</a></td>
+      <td><a href="{{ path_for('user', {'uid': s.submitter_id }) }}">{{ s.submitter_username }}</a></td>
+      <td>{% if not s.accepted is null %}{{ s.accepted ? "Yes" : (s.rejected ? "No" : "Unsure") }}{% endif %}</td>
+      <td>{% if not s.fullscore is null %}{% if s.minscore == s.maxscore %}{{ s.minscore }}{% else %}({{ s.minscore }} &ndash; {{s.maxscore}}){% endif %} / {{ s.fullscore }}{% endif %}</td>
+      <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
+      <td>{% if not s.memory is null %}{{ s.memory }} KiB{% endif %}</td>
+      <td><time datetime="{{ s.submit_time|date('c') }}">{{ s.submit_time|date('Y-m-d H:i:s') }}</time></td>
+      <td>{% if not s.judge_time is null %}<time datetime="{{ s.judge_time|date('c') }}">{{ s.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
     </tr>
   </table>
   <h3>Source Code</h3>
-  Language: {{ subm.language }}
-  <pre><code>{{ subm.code }}</code></pre>
+  Language: {{ s.language_name }}
+  <pre><code>{{ s.code }}</code></pre>
   <h3>Subtasks</h3>
   <table>
     <tr>
       <th>ID</th>
+      <th>Accepted</th>
       <th>Score</th>
+      <th>Time</th>
+      <th>Memory</th>
+      <th>Judge Time</th>
     </tr>
-{% for subt in subtasks %}
+{% for st in s.subtasks %}
     <tr>
-      <td>{{ subt.subtaskid }}</td>
-      <td>{% if subt.minscore == subt.maxscore %}{{ subt.minscore }}{% else %}({{ subt.minscore }} &ndash; {{subt.maxscore}}){% endif %} / {{ subt.fullscore }}</td>
+      <td>{{ st.subtask_id }}</td>
+      <td>{% if not st.accepted is null %}{{ st.accepted ? "Yes" : (st.rejected ? "No" : "Unsure") }}{% endif %}</td>
+      <td>{% if st.minscore == st.maxscore %}{{ st.minscore }}{% else %}({{ st.minscore }} &ndash; {{st.maxscore}}){% endif %} / {{ st.fullscore }}</td>
+      <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
+      <td>{% if not s.memory is null %}{{ s.memory }} KiB{% endif %}</td>
+      <td>{% if not s.judge_time is null %}<time datetime="{{ s.judge_time|date('c') }}">{{ s.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
     </tr>
 {% endfor %}
   </table>
@@ -53,18 +61,18 @@
       <th>Verdict</th>
       <th>Time</th>
       <th>Memory</th>
-      <th>Judge Name</th>
+      <th>Judge</th>
       <th>Judge Time</th>
     </tr>
-{% for case in testcases %}
+{% for tc in s.testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'pid': subm.pid, 'testid': case.testcaseid }) }}">{{ case.testcaseid }}</a></td>
-      <td>{{ case.accepted is null ? "" : (case.accepted ? "Yes" : "No") }}</td>
-      <td>{{ case.verdict }}</td>
-      <td>{% if not case.time is null %}{{ case.time }} ms {% endif %}</td>
-      <td>{% if not case.memory is null %}{{ case.memory }} KiB{% endif %}</td>
-      <td>{{ case.judge_name }}</td>
-      <td>{% if not case.judge_time is null %}<time datetime="{{ case.judge_time|date('c') }}">{{ case.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+      <td><a href="{{ path_for('test', { 'pid': s.problem_id, 'testid': tc.testcase_id }) }}">{{ tc.testcase_id }}</a></td>
+      <td>{{ tc.accepted is null ? "" : (tc.accepted ? "Yes" : "No") }}</td>
+      <td>{{ tc.verdict }}</td>
+      <td>{% if not tc.time is null %}{{ tc.time }} ms {% endif %}</td>
+      <td>{% if not tc.memory is null %}{{ tc.memory }} KiB{% endif %}</td>
+      <td>{{ tc.judge_name }}</td>
+      <td>{% if not tc.judge_time is null %}<time datetime="{{ tc.judge_time|date('c') }}">{{ tc.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
     </tr>
 {% endfor %}
   </table>

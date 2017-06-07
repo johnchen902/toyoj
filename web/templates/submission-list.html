@@ -1,0 +1,36 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Submissions - {{ parent() }}{% endblock %}
+
+{% block h2 %}Submissions{% endblock %}
+
+{% block content %}
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>Problem</th>
+      <th>Submitter</th>
+      <th>Accepted</th>
+      <th>Score</th>
+      <th>Time</th>
+      <th>Memory</th>
+      <th>Language</th>
+      <th>Submit Time</th>
+      <th>Judge Time</th>
+    </tr>
+{% for s in submissions %}
+    <tr>
+      <td><a href="{{ path_for('submission', { 'sid': s.id }) }}">{{ s.id }}</a></td>
+      <td><a href="{{ path_for('problem', { 'pid': s.problem_id }) }}">{{ s.problem_title }}</a></td>
+      <td><a href="{{ path_for('user', {'uid': s.submitter_id }) }}">{{ s.submitter_username }}</a></td>
+      <td>{% if not s.accepted is null %}{{ s.accepted ? "Yes" : (s.rejected ? "No" : "Unsure") }}{% endif %}</td>
+      <td>{% if not s.fullscore is null %}{% if s.minscore == s.maxscore %}{{ s.minscore }}{% else %}({{ s.minscore }} &ndash; {{s.maxscore}}){% endif %} / {{ s.fullscore }}{% endif %}</td>
+      <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
+      <td>{% if not s.memory is null %}{{ s.memory }} KiB{% endif %}</td>
+      <td>{{ s.language_name }}</td>
+      <td><time datetime="{{ s.submit_time|date('c') }}">{{ s.submit_time|date('Y-m-d H:i:s') }}</time></td>
+      <td>{% if not s.judge_time is null %}<time datetime="{{ s.judge_time|date('c') }}">{{ s.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+    </tr>
+{% endfor %}
+  </table>
+{% endblock content %}

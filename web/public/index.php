@@ -281,28 +281,11 @@ $app->post("/signup", function (Request $request, Response $response) {
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, minscore, maxscore, fullscore, time, memory, language, submit_time, judge_time FROM submissions_view ORDER BY sid DESC");
-    return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
+    return \Toyoj\Controllers\Submission::showAll($this, $request, $response);
 })->setName("submission-list");
 
 $app->get("/submissions/{sid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $sid = $args["sid"];
-    $submission = $this->db->prepare("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, minscore, maxscore, fullscore, time, memory, language, code, submit_time, judge_time FROM submissions_view WHERE sid=:sid");
-    $submission->execute(array("sid" => $sid));
-    $submission = $submission->fetch();
-    if(!$submission) {
-        return ($this->errorview)($response, 404, "No Such Submission");
-    }
-
-    $subtasks = $this->db->prepare("SELECT subtaskid, minscore, maxscore, fullscore FROM subtask_results_view_2 WHERE sid=:sid ORDER BY subtaskid");
-    $subtasks->execute(array("sid" => $sid));
-    $subtasks = $subtasks->fetchAll();
-
-    $testcases = $this->db->prepare("SELECT testcaseid, accepted, verdict, time, memory, judge_name, judge_time FROM results_view WHERE sid=:sid ORDER BY testcaseid");
-    $testcases->execute(array("sid" => $sid));
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "submission.html", array("submission" => $submission, "subtasks" => $subtasks, "testcases" => $testcases));
+    return \Toyoj\Controllers\Submission::show($this, $request, $response);
 })->setName("submission");
 
 $app->get("/users/", function (Request $request, Response $response) {
