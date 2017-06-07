@@ -21,12 +21,12 @@
     <tr>
       <td><a href="{{ path_for('problem', { 'pid': s.problem_id }) }}">{{ s.problem_title }}</a></td>
       <td><a href="{{ path_for('user', {'uid': s.submitter_id }) }}">{{ s.submitter_username }}</a></td>
-      <td>{% if not s.accepted is null %}{{ s.accepted ? "Yes" : (s.rejected ? "No" : "Unsure") }}{% endif %}</td>
-      <td>{% if not s.fullscore is null %}{% if s.minscore == s.maxscore %}{{ s.minscore }}{% else %}({{ s.minscore }} &ndash; {{s.maxscore}}){% endif %} / {{ s.fullscore }}{% endif %}</td>
+      <td>{% include "components/yes-no-unsure.html" with {"yes": s.accepted, "no": s.rejected} %}</td>
+      <td>{% include "components/min-max-full.html" with {"min": s.minscore, "max": s.maxscore, "full": s.fullscore} %}</td>
       <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
       <td>{% if not s.memory is null %}{{ s.memory }} KiB{% endif %}</td>
-      <td><time datetime="{{ s.submit_time|date('c') }}">{{ s.submit_time|date('Y-m-d H:i:s') }}</time></td>
-      <td>{% if not s.judge_time is null %}<time datetime="{{ s.judge_time|date('c') }}">{{ s.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+      <td>{% include "components/timestamp.html" with {"time": s.submit_time} %}</td>
+      <td>{% include "components/timestamp.html" with {"time": s.judge_time} %}</td>
     </tr>
   </table>
   <h3>Source Code</h3>
@@ -45,11 +45,11 @@
 {% for st in s.subtasks %}
     <tr>
       <td>{{ st.subtask_id }}</td>
-      <td>{% if not st.accepted is null %}{{ st.accepted ? "Yes" : (st.rejected ? "No" : "Unsure") }}{% endif %}</td>
-      <td>{% if st.minscore == st.maxscore %}{{ st.minscore }}{% else %}({{ st.minscore }} &ndash; {{st.maxscore}}){% endif %} / {{ st.fullscore }}</td>
+      <td>{% include "components/yes-no-unsure.html" with {"yes": st.accepted, "no": st.rejected} %}</td>
+      <td>{% include "components/min-max-full.html" with {"min": st.minscore, "max": st.maxscore, "full": st.fullscore} %}</td>
       <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
       <td>{% if not s.memory is null %}{{ s.memory }} KiB{% endif %}</td>
-      <td>{% if not s.judge_time is null %}<time datetime="{{ s.judge_time|date('c') }}">{{ s.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+      <td>{% include "components/timestamp.html" with {"time": s.judge_time} %}</td>
     </tr>
 {% endfor %}
   </table>
@@ -72,7 +72,7 @@
       <td>{% if not tc.time is null %}{{ tc.time }} ms {% endif %}</td>
       <td>{% if not tc.memory is null %}{{ tc.memory }} KiB{% endif %}</td>
       <td>{{ tc.judge_name }}</td>
-      <td>{% if not tc.judge_time is null %}<time datetime="{{ tc.judge_time|date('c') }}">{{ tc.judge_time|date('Y-m-d H:i:s') }}</time>{% endif %}</td>
+      <td>{% include "components/timestamp.html" with {"time": s.judge_time} %}</td>
     </tr>
 {% endfor %}
   </table>

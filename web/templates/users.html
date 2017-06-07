@@ -15,7 +15,7 @@
     <tr>
       <td>{{ user.uid }}</td>
       <td><a href="{{ path_for('user', { 'uid': user.uid }) }}">{{ user.username }}</a></td>
-      <td><time datetime="{{ user.register_date|date('c') }}">{{ user.register_date|date('Y-m-d') }}</time></td>
+      <td>{% include "components/timestamp.html" with {"time": user.register_time} %}</td>
     </tr>
 {% endfor %}
   </table>

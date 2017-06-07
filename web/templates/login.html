@@ -6,7 +6,7 @@
 
 {% block content %}
 {% if login %}
-{% include "message.html" with {"message" : "You are already logged in."} %}
+{% include "components/message.html" with {"message" : "You are already logged in."} %}
 {% endif %}
   <form method="post"><fieldset{% if login %} disabled{% endif %}>
     <div>

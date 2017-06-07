@@ -16,7 +16,7 @@
     <tr>
       <th>ID</th>
       <th>Title</th>
-      <th>Create Date</th>
+      <th>Create Time</th>
       <th>Manager</th>
       <th>Readiness</th>
     </tr>
@@ -24,7 +24,7 @@
     <tr>
       <td>{{ prob.id }}</td>
       <td><a href="{{ path_for('problem', { 'pid': prob.id }) }}">{{ prob.title }}</a></td>
-      <td><time datetime="{{ prob.create_time|date('c') }}">{{ prob.create_time|date('Y-m-d') }}</time></td>
+      <td>{% include "components/timestamp.html" with {"time": prob.create_time} %}</td>
       <td><a href="{{ path_for('user', {'uid': prob.manager_id }) }}">{{ prob.manager_name }}</a></td>
       <td>{{ prob.ready ? "Ready" : "Not Ready"}}</td>
     </tr>
