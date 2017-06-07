@@ -24,6 +24,7 @@ class Problem {
             "canaddnewproblem" => $canaddnewproblem,
         ]);
     }
+
     public static function show($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
         $problem = self::getProblemWithSubtasksAndTestcases($c, $pid);
@@ -35,46 +36,46 @@ class Problem {
                 ["problem" => $problem]);
     }
     public static function submit($c, Request $request, Response $response) {
-        $pid = $request->getAttribute("pid");
-        try {
-            $submission_id = self::doSubmit($c, $request);
-        } catch(\Exception $e) {
-            $c->messages[] = $e->getMessage() ?: "Unknown Error.";
-            return Utilities::redirectRoute($response, 303, $c,
-                    "problem", ["pid" => $pid]);
-        }
-        $c->messages[] = "Submitted.";
-        return Utilities::redirectRoute($response, 303, $c,
-                "submissions", ["sid" => $submission_id]);
-    }
-    private static function doSubmit($c, Request $request) {
-        $language = $request->getParsedBodyParam("language");
-        $code     = $request->getParsedBodyParam("code");
-
-        $code = Utilities::crlf2lf($code);
-
-        $errors = [];
-        self::validateSubmission($errors, $language, $code);
-        if($errors)
-            throw new \Exception(join(" ", $errors));
-
-        $pid = $request->getAttribute("pid");
-        return Utilities::transactional($c, function () use (
-                $c, $pid, $login, $language, $code) {
-            if(!self::checkSubmit($c, $pid))
-                throw new \Exception("Permission denied.");
-
-            $q = $c->qf->newInsert()
-                ->into("submissions")
-                ->cols([
-                    "problem_id" => $pid,
-                    "submitter_id" => $c->session["login"],
-                    "language_name" => $language,
-                    "code" => $code,
-                ])
-                ->returning(["id"]);
-            return $c->db->fetchValue($q->getStatement(), $q->getBindValues());
-        });
+        return (new class extends AbstractPostHandler {
+            protected function getAttributeNames() {
+                return ["pid"];
+            }
+            protected function getFieldNames() {
+                return ["language", "code"];
+            }
+            protected function transformData(array &$data) {
+                $data["code"] = Utilities::crlf2lf($data["code"]);
+            }
+            protected function verifyData(array $data) {
+                return Problem::validateSubmission($data);
+            }
+            protected function checkPermissions($c, array $data) {
+                return Problem::checkSubmit($c, $data["pid"]);
+            }
+            protected function getSuccessMessage() {
+                return "Submitted";
+            }
+            protected function getSuccessLocation($c, array $data, $result) {
+                return $c->router->pathFor("submission", ["sid" => $result]);
+            }
+            protected function getErrorLocation(
+                    $c, array $data, \Exception $e) {
+                return $c->router->pathFor("problem", ["pid" => $data["pid"]]);
+            }
+            protected function transaction($c, array $data) {
+                $q = $c->qf->newInsert()
+                    ->into("submissions")
+                    ->cols([
+                        "problem_id" => $data["pid"],
+                        "submitter_id" => $c->session["login"],
+                        "language_name" => $data["language"],
+                        "code" => $data["code"],
+                    ])
+                    ->returning(["id"]);
+                return $c->db->fetchValue(
+                        $q->getStatement(), $q->getBindValues());
+            }
+        })->handle($c, $request, $response);
     }
     public static function checkSubmit($c, $problem_id) {
         $login = $c->session["login"];
@@ -84,14 +85,15 @@ class Problem {
             ->cols(["1"])
             ->from("problems")
             ->where("id = ?", $problem_id)
-            ->where("ready OR (manager_id = ?)", $login)
-            ;
+            ->where("ready OR (manager_id = ?)", $login);
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
     }
-    public static function validateSubmission(array &$e, $lang, $code) {
-        Utilities::validateString($e, $lang, "Language", 1, 32);
-        Utilities::validateString($e, $code, "Code", 1, 65536);
+    public static function validateSubmission(array $data) {
+        $e = [];
+        Utilities::validateString($e, $data["language"], "Language", 1, 32);
+        Utilities::validateString($e, $data["code"], "Code", 1, 65536);
+        return $e;
     }
 
     public static function showCreatePage(
@@ -101,44 +103,43 @@ class Problem {
         return $c->view->render($response, "problem-new.html");
     }
     public static function create($c, Request $request, Response $response) {
-        try {
-            $problem_id = self::doCreate($c, $request);
-        } catch (\Exception $e) {
-            $c->messages[] = $e->getMessage() ?: "Unknown Error.";
-            return Utilities::redirectRoute($response, 303, $c,
-                    "problem-new");
-        }
-        $c->messages[] = "New problem created.";
-        return Utilities::redirectRoute($response, 303, $c,
-                "problem", ["pid" => $problem_id]);
-    }
-    private static function doCreate($c, Request $request) {
-        $title     = $request->getParsedBodyParam("title");
-        $statement = $request->getParsedBodyParam("statement");
-
-        $statement = Utilities::crlf2lf($statement);
-
-        $errors = [];
-        self::validateProblem($errors, $title, $statement);
-        if($errors)
-            throw new \Exception(join(" ", $errors));
-
-        return Utilities::transactional($c, function () use (
-                $c, $title, $statement) {
-            if(!self::checkCreate($c))
-                throw new \Exception("Permission denied.");
-            $login = $c->session["login"];
-            $q = $c->qf->newInsert()
-                ->into("problems")
-                ->cols([
-                    "title" => $title,
-                    "statement" => $statement,
-                    "manager_id" => $login,
-                    "ready" => false,
-                ])
-                ->returning(["id"]);
-            return $c->db->fetchValue($q->getStatement(), $q->getBindValues());
-        });
+        return (new class extends AbstractPostHandler {
+            protected function getFieldNames() {
+                return ["title", "statement"];
+            }
+            protected function transformData(array &$data) {
+                $data["statement"] = Utilities::crlf2lf($data["statement"]);
+            }
+            protected function verifyData(array $data) {
+                return Problem::validateProblem($data);
+            }
+            protected function checkPermissions($c, array $data) {
+                return Problem::checkCreate($c);
+            }
+            protected function getSuccessMessage() {
+                return "Problem Created";
+            }
+            protected function getSuccessLocation($c, array $data, $result) {
+                return $c->router->pathFor("problem", ["pid" => $result]);
+            }
+            protected function getErrorLocation(
+                    $c, array $data, \Exception $e) {
+                return $c->router->pathFor("problem-new");
+            }
+            protected function transaction($c, array $data) {
+                $q = $c->qf->newInsert()
+                    ->into("problems")
+                    ->cols([
+                        "title" => $data["title"],
+                        "statement" => $data["statement"],
+                        "manager_id" => $c->session["login"],
+                        "ready" => false,
+                    ])
+                    ->returning(["id"]);
+                return $c->db->fetchValue(
+                        $q->getStatement(), $q->getBindValues());
+            }
+        })->handle($c, $request, $response);
     }
     public static function checkCreate($c) {
         $login = $c->session["login"];
@@ -165,49 +166,47 @@ class Problem {
         return $c->view->render($response, $page, ["problem" => $problem]);
     }
     public static function edit($c, Request $request, Response $response) {
-        $pid = $request->getAttribute("pid");
-        try {
-            self::doEdit($c, $request);
-        } catch (\Exception $e) {
-            $c->messages[] = $e->getMessage() ?: "Unknown Error.";
-            return Utilities::redirectRoute($response, 303, $c,
-                    "problem-edit", ["pid" => $pid]);
-        }
-        $c->messages[] = "Problem edited.";
-        return Utilities::redirectRoute($response, 303, $c,
-                "problem", ["pid" => $pid]);
-    }
-    private static function doEdit($c, Request $request) {
-        $title     = $request->getParsedBodyParam("title");
-        $statement = $request->getParsedBodyParam("statement");
-        $ready     = $request->getParsedBodyParam("ready");
-
-        $statement = Utilities::crlf2lf($statement);
-        $ready = $ready === "ready";
-
-        $errors = [];
-        self::validateProblem($errors, $title, $statement);
-        if($errors)
-            throw new \Exception(join(" ", $errors));
-
-        $pid = $request->getAttribute("pid");
-        return Utilities::transactional($c, function () use (
-                $c, $pid, $title, $statement, $ready) {
-            if(!self::checkEdit($c, $pid))
-                throw new \Exception("Permission denied.");
-            $q = $c->qf->newUpdate()
-                ->table("problems")
-                ->cols([
-                    "title" => $title,
-                    "statement" => $statement,
-                    "ready" => $ready,
-                ])
-                ->where("id = ?", $pid);
-            $stmt = $q->getStatement();
-            $bind = $q->getBindValues();
-            if($c->db->fetchAffected($stmt, $bind) != 1)
-                throw new \Exception();
-        });
+        return (new class extends AbstractPostHandler {
+            protected function getAttributeNames() {
+                return ["pid"];
+            }
+            protected function getFieldNames() {
+                return ["title", "statement", "ready"];
+            }
+            protected function transformData(array &$data) {
+                $data["statement"] = Utilities::crlf2lf($data["statement"]);
+                $data["ready"] = $data["ready"] === "ready";
+            }
+            protected function verifyData(array $data) {
+                return Problem::validateProblem($data);
+            }
+            protected function checkPermissions($c, array $data) {
+                return Problem::checkEdit($c, $data["pid"]);
+            }
+            protected function getSuccessMessage() {
+                return "Problem Edited";
+            }
+            protected function getSuccessLocation($c, array $data, $result) {
+                return $c->router->pathFor("problem", ["pid" => $result]);
+            }
+            protected function getErrorLocation(
+                    $c, array $data, \Exception $e) {
+                return $c->router->pathFor("problem-edit", ["pid" => $result]);
+            }
+            protected function transaction($c, array $data) {
+                $q = $c->qf->newUpdate()
+                    ->table("problems")
+                    ->cols([
+                        "title" => $data["title"],
+                        "statement" => $data["statement"],
+                        "ready" => $data["ready"],
+                    ])
+                    ->where("id = ?", $pid);
+                if($c->db->fetchAffected(
+                        $q->getStatement(), $q->getBindValues()) != 1)
+                    throw new \Exception();
+            }
+        })->handle($c, $request, $response);
     }
     public static function checkEdit($c, $problem_id) {
         $login = $c->session["login"];
@@ -222,9 +221,11 @@ class Problem {
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
     }
-    public static function validateProblem(array &$e, $title, $statement) {
-        Utilities::validateString($e, $title, "Title", 1, 128);
-        Utilities::validateString($e, $statement, "Statement", 1, 65536);
+    public static function validateProblem(array &$data) {
+        $e = [];
+        Utilities::validateString($e, $data["title"], "Title", 1, 128);
+        Utilities::validateString($e, $data["statement"], "Statement", 1, 65536);
+        return $e;
     }
 
     private static function getProblem($c, $problem_id) {
