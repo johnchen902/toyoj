@@ -4,19 +4,8 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 class Problem {
     public static function showAll($c, Request $request, Response $response) {
-        $q = $c->qf->newSelect()
-            ->cols([
-                "p.id",
-                "p.title",
-                "p.create_time",
-                "p.manager_id",
-                "u.username AS manager_name",
-                "p.ready"
-            ])
-            ->from("problems AS p")
-            ->innerJoin("users AS u", "p.manager_id = u.id")
-            ->orderBy(["p.id"])
-            ;
+        $q = self::getBaseProblemQuery($c)
+            ->orderBy(["p.id"]);
         $problems = $c->db->fetchAll($q->getStatement(), $q->getBindValues());
         $canaddnewproblem = Problem::checkCreate($c);
         return $c->view->render($response, "problem-list.html", [
@@ -228,24 +217,31 @@ class Problem {
         return $e;
     }
 
-    private static function getProblem($c, $problem_id) {
-        $q = $c->qf->newSelect()
+    public static function getBaseProblemQuery($c) {
+        return $c->qf->newSelect()
             ->cols([
                 "p.id",
                 "p.title",
-                "p.statement",
                 "p.create_time",
                 "p.manager_id",
                 "u.username AS manager_name",
                 "p.ready"
             ])
             ->from("problems AS p")
-            ->innerJoin("users AS u", "p.manager_id = u.id")
-            ->where("p.id = ?", $problem_id)
-            ;
+            ->innerJoin("users AS u", "p.manager_id = u.id");
+    }
+    public static function getBaseProblem($c, $problem_id) {
+        $q = self::getBaseProblemQuery($c)
+            ->where("p.id = ?", $problem_id);
         return $c->db->fetchOne($q->getStatement(), $q->getBindValues());
     }
-    private static function getSubtasksByProblemId($c, $problem_id) {
+    public static function getProblem($c, $problem_id) {
+        $q = self::getBaseProblemQuery($c)
+            ->cols(["p.statement"])
+            ->where("p.id = ?", $problem_id);
+        return $c->db->fetchOne($q->getStatement(), $q->getBindValues());
+    }
+    public static function getSubtasksByProblemId($c, $problem_id) {
         $q = $c->qf->newSelect()
             ->cols(["id", "score"])
             ->from("subtasks")
@@ -254,7 +250,7 @@ class Problem {
             ;
         return $c->db->fetchAssoc($q->getStatement(), $q->getBindValues());
     }
-    private static function getTestcasesByProblemId($c, $problem_id) {
+    public static function getTestcasesByProblemId($c, $problem_id) {
         $q = $c->qf->newSelect()
             ->cols(["id", "time_limit", "memory_limit", "checker_name"])
             ->from("testcases")

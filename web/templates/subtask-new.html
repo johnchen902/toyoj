@@ -18,7 +18,7 @@
         Score: <input type="number" name="score" min="1" value="100">
       </label>
     </div>
-{% for test in testcases %}
+{% for test in problem.testcases %}
     <div>
       <label>
         <input type="checkbox" name="testcaseids[]" value="{{ test.id }}"> Test Case #{{ test.id }}

@@ -103,27 +103,25 @@ $app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $
 });
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response) {
-    $pid = $request->getAttribute("pid");
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+    return \Toyoj\Controllers\Subtask::showAll($this, $request, $response);
 })->setName("subtask-list");
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\SubtaskNew::get($this, $request, $response);
+    return \Toyoj\Controllers\Subtask::showCreatePage($this, $request, $response);
 })->setName("subtask-new");
 $app->post("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\SubtaskNew::post($this, $request, $response);
+    return \Toyoj\Controllers\Subtask::create($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/", function (Request $request, Response $response) {
-    $pid = $request->getAttribute("pid");
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+    return \Toyoj\Controllers\Subtask::show($this, $request, $response);
 })->setName("subtask");
 
 $app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\SubtaskEdit::get($this, $request, $response);
+    return \Toyoj\Controllers\Subtask::showEditPage($this, $request, $response);
 })->setName("subtask-edit");
 $app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\SubtaskEdit::post($this, $request, $response);
+    return \Toyoj\Controllers\Subtask::editOrDelete($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {

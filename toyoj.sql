@@ -82,6 +82,43 @@ CREATE TABLE results (
     FOREIGN KEY (testcase_id, problem_id) REFERENCES testcases (id, problem_id) ON DELETE CASCADE
 );
 
+CREATE VIEW subtask_testcases_view AS SELECT
+    k.problem_id,
+    k.id AS subtask_id,
+    t.id AS testcase_id,
+    (EXISTS (SELECT 1 FROM subtask_testcases WHERE subtask_id = k.id AND testcase_id = t.id)) AS "exists"
+FROM subtasks k JOIN testcases t USING (problem_id);
+
+CREATE FUNCTION subtask_testcases_view_update() RETURNS trigger AS $$
+BEGIN
+    IF OLD.problem_id != NEW.problem_id THEN
+        RAISE EXCEPTION 'problem_id cannot be modified';
+    END IF;
+    IF OLD.subtask_id != NEW.subtask_id THEN
+        RAISE EXCEPTION 'subtask_id cannot be modified';
+    END IF;
+    IF OLD.testcase_id != NEW.testcase_id THEN
+        RAISE EXCEPTION 'testcase_id cannot be modified';
+    END IF;
+    IF OLD."exists" != NEW."exists" THEN
+        IF NEW."exists" THEN
+            INSERT INTO subtask_testcases (problem_id, subtask_id, testcase_id)
+                VALUES (NEW.problem_id, NEW.subtask_id, NEW.testcase_id);
+        ELSE
+            DELETE FROM subtask_testcases
+                WHERE problem_id = NEW.problem_id AND
+                    subtask_id = NEW.subtask_id AND
+                    testcase_id = NEW.testcase_id;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER subtask_testcases_view_update_trigger
+    INSTEAD OF UPDATE ON subtask_testcases_view
+    FOR EACH ROW EXECUTE PROCEDURE subtask_testcases_view_update();
+
 CREATE VIEW results_view AS SELECT
     s.id AS submission_id,
     t.id AS testcase_id,
@@ -95,7 +132,7 @@ FROM submissions s JOIN testcases t USING (problem_id)
     LEFT JOIN result_judges j ON (s.id = j.submission_id AND t.id = j.testcase_id)
     LEFT JOIN results r ON (s.id = r.submission_id AND t.id = r.testcase_id);
 
-CREATE VIEW subtask_results_view_0 AS SELECT
+CREATE VIEW subtask_results_view AS WITH subtask_results_view_0 AS (SELECT
     s.id AS submission_id,
     k.id AS subtask_id,
     bool_and(r.accepted IS TRUE) AS accepted,
@@ -107,9 +144,8 @@ CREATE VIEW subtask_results_view_0 AS SELECT
 FROM submissions s JOIN subtasks k USING (problem_id)
     JOIN subtask_testcases kt ON (k.id = kt.subtask_id)
     LEFT JOIN results r ON (s.id = r.submission_id AND kt.testcase_id = r.testcase_id)
-GROUP BY s.id, k.id;
-
-CREATE VIEW subtask_results_view AS SELECT
+GROUP BY s.id, k.id)
+SELECT
     submission_id,
     subtask_id,
     accepted,
@@ -166,6 +202,7 @@ GRANT SELECT, INSERT, DELETE ON subtask_testcases TO toyojweb;
 GRANT SELECT, INSERT ON submissions TO toyojweb;
 GRANT SELECT ON result_judges TO toyojweb;
 GRANT SELECT ON results TO toyojweb;
+GRANT SELECT, UPDATE ON subtask_testcases_view TO toyojweb;
 GRANT SELECT ON results_view TO toyojweb;
 GRANT SELECT ON subtask_results_view TO toyojweb;
 GRANT SELECT ON submission_results_view TO toyojweb;
