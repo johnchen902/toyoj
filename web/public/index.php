@@ -1,16 +1,12 @@
 <?php
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Aura\Sql\ExtendedPdo;
+use Aura\SqlQuery\QueryFactory;
 
 set_include_path(get_include_path() . PATH_SEPARATOR . "../classes/");
 spl_autoload_register();
 require "../vendor/autoload.php";
-
-function redirect(Response $response, int $code, string $location) {
-    $response = $response->withStatus($code);
-    $response = $response->withHeader("Location", $location);
-    return $response;
-}
 
 date_default_timezone_set("Asia/Taipei");
 
@@ -31,10 +27,10 @@ $container["view"] = function ($container) {
     return $view;
 };
 $container["db"] = function ($container) {
-    $pdo = new PDO("pgsql:dbname=toyoj user=toyojweb");
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-    return $pdo;
+    return new ExtendedPdo("pgsql:dbname=toyoj user=toyojweb");
+};
+$container["qf"] = function ($container) {
+    return new QueryFactory("pgsql");
 };
 $container["errorview"] = function ($container) {
     return function (Response $response, int $status, string $message) use ($container) {
@@ -53,602 +49,118 @@ $container["session"] = function ($container) {
 $container["messages"] = function ($container) {
     return new \Toyoj\MessageWrapper($container->session);
 };
-$container["permissions"] = function ($container) {
-    return new \Toyoj\PermissionChecker($container);
-};
 $container["forms"] = function ($container) {
     return new \Toyoj\FormValidator();
 };
 
 $app->get("/", function (Request $request, Response $response) {
-    return $this->view->render($response, "index.html");
+    return \Toyoj\Controllers\Index::get($this, $request, $response);
 })->setName("index");
 
 $app->get("/login", function (Request $request, Response $response) {
-    return $this->view->render($response, "login.html");
+    return \Toyoj\Controllers\Account::showLoginPage($this, $request, $response);
 })->setName("login");
 $app->post("/login", function (Request $request, Response $response) {
-    if($this->session["login"] ?? false) {
-        $this->messages[] = "Already logged in";
-        return redirect($response, 303, $this->router->pathFor("index"));
-    }
-
-    $username = $request->getParsedBodyParam("username");
-    $password = $request->getParsedBodyParam("password");
-    $stmt = $this->db->prepare("SELECT uid, hash FROM users JOIN passwords USING (uid) WHERE username=:username");
-    $stmt->execute(array("username" => $username));
-    $user = $stmt->fetch();
-    if(!$user) {
-        $this->messages[] = "Incorrect username or password";
-        return redirect($response, 303, $this->router->pathFor("login"));
-    }
-    if(!password_verify($password, $user["hash"])) {
-        $this->messages[] = "Incorrect username or password";
-        return redirect($response, 303, $this->router->pathFor("login"));
-    }
-
-    $this->session["login"] = $user["uid"];
-
-    $this->messages[] = "Logged in successfully";
-    return redirect($response, 303, $this->router->pathFor("index"));
+    return \Toyoj\Controllers\Account::login($this, $request, $response);
 });
 
 $app->get("/logout", function (Request $request, Response $response) {
-    return $this->view->render($response, "logout.html");
+    return \Toyoj\Controllers\Account::showLogoutPage($this, $request, $response);
 })->setName("logout");
 $app->post("/logout", function (Request $request, Response $response) {
-    if(isset($this->session["login"])) {
-        unset($this->session["login"]);
-        $this->messages[] = "Logged out successfully";
-    } else {
-        $this->messages[] = "You are not logged in";
-    }
-    return redirect($response, 303, $this->router->pathFor("login"));
-});
-
-$app->get("/problems/", function (Request $request, Response $response) {
-    $problems = $this->db->query("SELECT p.pid, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid ORDER BY pid");
-    $canaddnewproblem = $this->permissions->checkNewProblem();
-    return $this->view->render($response, "problems.html",
-        array(
-            "problems" => $problems,
-            "canaddnewproblem" => $canaddnewproblem,
-        ));
-})->setName("problem-list");
-
-$app->get("/problems/new", function (Request $request, Response $response) {
-    if(!$this->permissions->checkNewProblem()) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-    return $this->view->render($response, "problem-new.html");
-})->setName("new-problem");
-$app->post("/problems/new", function (Request $request, Response $response) {
-    $login = $this->session["login"];
-    $title = $request->getParsedBodyParam("title");
-    $statement = $request->getParsedBodyParam("statement");
-
-    $statement = str_replace("\r\n", "\n", $statement);
-
-    $errors = $this->forms->validateProblem($title, $statement);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("new-problem"));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkNewProblem()) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to add new problem.";
-        return redirect($response, 303, $this->router->pathFor("problem-list"));
-    }
-    $stmt = $this->db->prepare("INSERT INTO problems (title, statement, manager) VALUES (:title, :statement, :login) RETURNING pid");
-    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":login" => $login));
-    $pid = $stmt->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$pid) {
-        $this->messages[] = "Add new problem failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("new-problem"));
-    }
-
-    $pid = $pid["pid"];
-    $this->messages[] = "New problem added.";
-    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-});
-
-$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    $problem["cansubmit"] = $this->permissions->checkSubmit($pid);
-    $problem["canedit"] = $this->permissions->checkEditProblem($pid);
-
-    $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
-    $subtasks->execute(array(":pid" => $pid));
-    $subtasks = $subtasks->fetchAll();
-    foreach($subtasks as &$subtask) {
-        $tcids = array_map("intval", explode(",", substr($subtask["testcaseids"], 1, -1)));
-        sort($tcids);
-        $subtask["testcaseids"] = implode(", ", $tcids);
-    }
-
-    $testcases = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid ORDER BY testcaseid");
-    $testcases->execute(array(":pid" => $pid));
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "problem.html",
-        array(
-            "problem" => $problem,
-            "subtasks" => $subtasks,
-            "testcases" => $testcases,
-        )
-    );
-})->setName("problem");
-$app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"] ?? false;
-    $language = $request->getParsedBodyParam("language");
-    $code = $request->getParsedBodyParam("code");
-    $code = str_replace("\r\n", "\n", $code);
-
-    $errors = $this->forms->validateSubmission($language, $code);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkSubmit($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to submit on this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $sid = $this->db->prepare("INSERT INTO submissions(pid, submitter, language, code) VALUES (:pid, :submitter, :language, :code) RETURNING sid");
-    $sid->execute(array(":pid" => $pid, ":submitter" => $login, ":language" => $language, ":code" => $code));
-    $sid = $sid->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$sid) {
-        $this->messages[] = "Submission failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("submission-list"));
-    }
-    $sid = $sid["sid"];
-
-    return redirect($response, 303, $this->router->pathFor("submission", array("sid" => $sid)));
-});
-
-$app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT p.pid, p.statement, p.title, p.create_date, p.manager, u.username AS manager_name, p.ready FROM problems AS p, users AS u WHERE p.manager = u.uid AND p.pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    if(!$this->permissions->checkEditProblem($pid)) {
-        return $this->view->render($response, "problem-source.html",
-            array("problem" => $problem));
-    }
-
-    $subtasks = $this->db->prepare("SELECT subtaskid, score, testcaseids FROM subtasks_view WHERE pid = :pid ORDER BY subtaskid");
-    $subtasks->execute(array(":pid" => $pid));
-    $subtasks = $subtasks->fetchAll();
-    foreach($subtasks as &$subtask) {
-        $tcids = array_map("intval", explode(",", substr($subtask["testcaseids"], 1, -1)));
-        sort($tcids);
-        $subtask["testcaseids"] = implode(", ", $tcids);
-    }
-
-    $testcases = $this->db->prepare("SELECT testcaseid, time_limit, memory_limit, checker FROM testcases WHERE pid = :pid ORDER BY testcaseid");
-    $testcases->execute(array(":pid" => $pid));
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "problem-edit.html",
-        array(
-            "problem" => $problem,
-            "subtasks" => $subtasks,
-            "testcases" => $testcases,
-        )
-    );
-})->setName("edit-problem");
-$app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"];
-    $title = $request->getParsedBodyParam("title");
-    $statement = $request->getParsedBodyParam("statement");
-    $ready = $request->getParsedBodyParam("ready");
-
-    $statement = str_replace("\r\n", "\n", $statement);
-    $ready = $ready === "ready" ? "t" : "f";
-
-    $errors = $this->forms->validateProblem($title, $statement);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkEditProblem($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to edit this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $stmt = $this->db->prepare("UPDATE problems SET (title, statement, ready) = (:title, :statement, :ready) WHERE pid = :pid");
-    $stmt->execute(array(":title" => $title, ":statement" => $statement, ":ready" => $ready, ":pid" => $pid));
-    $editSuccess = $stmt->rowCount() > 0;
-    $this->db->exec("COMMIT");
-
-    if(!$editSuccess) {
-        $this->messages[] = "Edit failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("edit-problem", array("pid" => $pid)));
-    }
-
-    $this->messages[] = "Problem edited.";
-    return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-});
-
-$app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
-})->setName("subtask-list");
-
-$app->get("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
-    $problem->execute([":pid" => $pid]);
-    $problem = $problem->fetch();
-    if(!$problem)
-        return ($this->errorview)($response, 404, "No Such Problem");
-    if(!$this->permissions->checkNewSubtask($pid))
-        return ($this->errorview)($response, 403, "Forbidden");
-
-    $testcases = $this->db->prepare("SELECT testcaseid FROM testcases WHERE pid = :pid");
-    $testcases->execute([":pid" => $pid]);
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "subtask-new.html",
-            ["problem" => $problem, "testcases" => $testcases]);
-})->setName("new-subtask");
-$app->post("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"];
-    $score = (int) $request->getParsedBodyParam("score");
-    $testcaseids = $request->getParsedBodyParam("testcaseids");
-
-    $errors = $this->forms->validateSubtask($score, $testcaseids, $testcaseids);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkNewSubtask($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to add new subtask for this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $stmt = $this->db->prepare("SELECT 1 FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
-    foreach($testcaseids as $testcaseid) {
-        $stmt->execute([":pid" => $pid, ":testcaseid" => $testcaseid]);
-        if(!$stmt->fetch()) {
-            $this->db->exec("ROLLBACK");
-            $this->messages[] = "Test case #$testcaseid is not of problem #$pid";
-            return redirect($response, 303, $this->router->pathFor("new-subtask", array("pid" => $pid)));
-        }
-    }
-
-    $stmt = $this->db->prepare("INSERT INTO subtasks (pid, score) VALUES (:pid, :score) RETURNING subtaskid");
-    $stmt->execute([":pid" => $pid, ":score" => $score ]);
-    $subtaskid = $stmt->fetch()["subtaskid"];
-
-    $stmt = $this->db->prepare("INSERT INTO subtasktestcases (subtaskid, testcaseid) VALUES (:subtaskid, :testcaseid)");
-    foreach($testcaseids as $testcaseid) {
-        $stmt->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
-    }
-    $this->db->exec("COMMIT");
-
-    $this->messages[] = "Subtask added.";
-    return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-});
-
-$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
-})->setName("subtask");
-
-$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $subtaskid = $args["subtaskid"];
-    $subtask = $this->db->prepare("SELECT p.pid, p.title, s.subtaskid, s.score FROM subtasks s JOIN problems p USING (pid) WHERE pid = :pid AND subtaskid = :subtaskid");
-    $subtask->execute([":pid" => $pid, ":subtaskid" => $subtaskid]);
-    $subtask = $subtask->fetch();
-    if(!$subtask)
-        return ($this->errorview)($response, 404, "No Such Problem Or Subtask");
-    if(!$this->permissions->checkEditSubtask($subtaskid))
-        return ($this->errorview)($response, 403, "Forbidden");
-
-    $testcases = $this->db->prepare("SELECT testcaseid, testcaseid IN (SELECT testcaseid FROM subtasktestcases WHERE subtaskid = :subtaskid) AS included FROM testcases WHERE pid = :pid");
-    $testcases->execute([":subtaskid" => $subtaskid, ":pid" => $pid]);
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "subtask-edit.html",
-            ["subtask" => $subtask, "testcases" => $testcases]);
-})->setName("edit-subtask");
-$app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $subtaskid = $args["subtaskid"];
-    $login = $this->session["login"];
-    $score = (int) $request->getParsedBodyParam("score");
-    $testcaseids = $request->getParsedBodyParam("testcaseids");
-    $alltestcaseids = $request->getParsedBodyParam("alltestcaseids");
-    $delete = $request->getParsedBodyParam("delete");
-
-    if($delete) {
-        $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-        if(!$this->permissions->checkDeleteSubtask($subtaskid)) {
-            $this->db->exec("ROLLBACK");
-            $this->messages[] = "You are not allowed to delete this subtask.";
-            return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-        }
-        $stmt = $this->db->prepare("DELETE FROM subtasks WHERE pid = :pid AND subtaskid = :subtaskid");
-        $stmt->execute(["pid" => $pid, "subtaskid" => $subtaskid]);
-        $success = $stmt->rowCount() > 0;
-        if(!$success) {
-            $this->db->exec("ROLLBACK");
-            $this->messages[] = "Delete failed for unknown reason.";
-            return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-        }
-        $this->db->exec("COMMIT");
-        return redirect($response, 303, $this->router->pathFor("subtask-list", array("pid" => $pid)));
-    }
-
-    $errors = $this->forms->validateSubtask($score, $testcaseids, $alltestcaseids);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkEditSubtask($subtaskid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to edit this subtask.";
-        return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-    }
-    $stmt = $this->db->prepare("SELECT 1 FROM testcases WHERE pid = :pid AND testcaseid = :testcaseid");
-    foreach($alltestcaseids as $testcaseid) {
-        $stmt->execute([":pid" => $pid, ":testcaseid" => $testcaseid]);
-        if(!$stmt->fetch()) {
-            $this->db->exec("ROLLBACK");
-            $this->messages[] = "Test case #$testcaseid is not of problem #$pid";
-            return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-        }
-    }
-
-    $stmt = $this->db->prepare("UPDATE subtasks SET score = :score WHERE pid = :pid AND subtaskid = :subtaskid");
-    $stmt->execute([":subtaskid" => $subtaskid, ":score" => $score, ":pid" => $pid]);
-    if($stmt->rowCount() == 0) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "Subtask #$subtaskid is not of problem #$pid";
-        return redirect($response, 303, $this->router->pathFor("edit-subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-    }
-
-    $stmtInsert = $this->db->prepare("INSERT INTO subtasktestcases (subtaskid, testcaseid) VALUES (:subtaskid, :testcaseid) ON CONFLICT DO NOTHING");
-    $stmtDelete = $this->db->prepare("DELETE FROM subtasktestcases WHERE subtaskid = :subtaskid AND testcaseid = :testcaseid");
-    foreach($alltestcaseids as $testcaseid) {
-        if(in_array($testcaseid, $testcaseids))
-            $stmtInsert->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
-        else
-            $stmtDelete->execute([":subtaskid" => $subtaskid, ":testcaseid" => $testcaseid]);
-    }
-    $this->db->exec("COMMIT");
-
-    $this->messages[] = "Subtask edited.";
-    return redirect($response, 303, $this->router->pathFor("subtask", array("pid" => $pid, "subtaskid" => $subtaskid)));
-    return $response;
-});
-
-$app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#test-cases");
-});
-
-$app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    if(!$this->permissions->checkNewTestCase($pid)) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-    return $this->view->render($response, "testcase-new.html",
-            array("problem" => $problem));
-})->setName("new-test");
-$app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"];
-    $time_limit = (int) $request->getParsedBodyParam("time_limit");
-    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
-    $checker = $request->getParsedBodyParam("checker");
-    $input = $request->getParsedBodyParam("input");
-    $output = $request->getParsedBodyParam("output");
-
-    $input = str_replace("\r\n", "\n", $input);
-    $output = str_replace("\r\n", "\n", $output);
-
-    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkNewTestCase($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to add new test case for this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $stmt = $this->db->prepare("INSERT INTO testcases (pid, time_limit, memory_limit, checker, input, output) VALUES (:pid, :time_limit, :memory_limit, :checker, :input, :output) RETURNING testcaseid");
-    $stmt->execute(array(
-        ":pid" => $pid,
-        ":time_limit" => $time_limit,
-        ":memory_limit" => $memory_limit,
-        ":checker" => $checker,
-        ":input" => $input,
-        ":output" => $output,
-    ));
-    $testid = $stmt->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$testid) {
-        $this->messages[] = "Add new test case failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
-    }
-
-    $testid = $testid["testcaseid"];
-    $this->messages[] = "Test case added.";
-    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
-});
-
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testcaseid = $args["testid"];
-
-    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
-    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
-    $testcase = $testcase->fetch();
-    if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
-    }
-    $testcase["canedit"] = $this->permissions->checkEditTestCase($testcaseid);
-
-    return $this->view->render($response, "testcase.html",
-            array("testcase" => $testcase));
-})->setName("test");
-
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testcaseid = $args["testid"];
-
-    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
-    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
-    $testcase = $testcase->fetch();
-    if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
-    }
-    if(!$this->permissions->checkEditTestCase($testcaseid)) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-
-    return $this->view->render($response, "testcase-edit.html",
-        array("testcase" => $testcase));
-})->setName("edit-test");
-$app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testid = $args["testid"];
-    $login = $this->session["login"];
-    $time_limit = (int) $request->getParsedBodyParam("time_limit");
-    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
-    $checker = $request->getParsedBodyParam("checker");
-    $input = $request->getParsedBodyParam("input");
-    $output = $request->getParsedBodyParam("output");
-
-    $input = str_replace("\r\n", "\n", $input);
-    $output = str_replace("\r\n", "\n", $output);
-
-    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkEditTestCase($testid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to edit this test case.";
-        return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
-    }
-    $stmt = $this->db->prepare("UPDATE testcases SET (time_limit, memory_limit, checker, input, output) = (:time_limit, :memory_limit, :checker, :input, :output) WHERE testcaseid = :testcaseid AND pid = :pid");
-    $stmt->execute(array(
-        ":time_limit" => $time_limit,
-        ":memory_limit" => $memory_limit,
-        ":checker" => $checker,
-        ":input" => $input,
-        ":output" => $output,
-        ":pid" => $pid,
-        ":testcaseid" => $testid,
-    ));
-    $editSuccess = $stmt->rowCount() > 0;
-    $this->db->exec("COMMIT");
-
-    if(!$editSuccess) {
-        $this->messages[] = "Edit failed for unknown reason.";
-        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
-    }
-
-    $this->messages[] = "Test case edited.";
-    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
+    return \Toyoj\Controllers\Account::logout($this, $request, $response);
 });
 
 $app->get("/signup", function (Request $request, Response $response) {
-    return $this->view->render($response, "signup.html");
+    return \Toyoj\Controllers\Account::showSignupPage($this, $request, $response);
 })->setName("signup");
 $app->post("/signup", function (Request $request, Response $response) {
-    return redirect($response, 303, $this->router->pathFor("signup"));
+    return \Toyoj\Controllers\Account::signup($this, $request, $response);
+});
+
+$app->get("/problems/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::showAll($this, $request, $response);
+})->setName("problem-list");
+
+$app->get("/problems/new", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::showCreatePage($this, $request, $response);
+})->setName("problem-new");
+$app->post("/problems/new", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::create($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::show($this, $request, $response);
+})->setName("problem");
+$app->post("/problems/{problem_id:[0-9]+}/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::submit($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/edit", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::showEditPage($this, $request, $response);
+})->setName("problem-edit");
+$app->post("/problems/{problem_id:[0-9]+}/edit", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Problem::edit($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::showAll($this, $request, $response);
+})->setName("subtask-list");
+
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::showCreatePage($this, $request, $response);
+})->setName("subtask-new");
+$app->post("/problems/{problem_id:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::create($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::show($this, $request, $response);
+})->setName("subtask");
+
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::showEditPage($this, $request, $response);
+})->setName("subtask-edit");
+$app->post("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Subtask::editOrDelete($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/testcases/", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::showAll($this, $request, $response);
+})->setName("testcase-list");
+
+$app->get("/problems/{problem_id:[0-9]+}/testcases/new", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::showCreatePage($this, $request, $response);
+})->setName("testcase-new");
+$app->post("/problems/{problem_id:[0-9]+}/testcases/new", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::create($this, $request, $response);
+});
+
+$app->get("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::show($this, $request, $response);
+})->setName("testcase");
+
+$app->get("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::showEditPage($this, $request, $response);
+})->setName("testcase-edit");
+$app->post("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\TestCase::editOrDelete($this, $request, $response);
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
-    $submissions = $this->db->query("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, minscore, maxscore, fullscore, time, memory, language, submit_time, judge_time FROM submissions_view ORDER BY sid DESC");
-    return $this->view->render($response, "submissions.html", array("submissions" => $submissions));
+    return \Toyoj\Controllers\Submission::showAll($this, $request, $response);
 })->setName("submission-list");
 
-$app->get("/submissions/{sid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $sid = $args["sid"];
-    $submission = $this->db->prepare("SELECT sid, pid, title, submitter, submitter_name, accepted, rejected, minscore, maxscore, fullscore, time, memory, language, code, submit_time, judge_time FROM submissions_view WHERE sid=:sid");
-    $submission->execute(array("sid" => $sid));
-    $submission = $submission->fetch();
-    if(!$submission) {
-        return ($this->errorview)($response, 404, "No Such Submission");
-    }
-
-    $subtasks = $this->db->prepare("SELECT subtaskid, minscore, maxscore, fullscore FROM subtask_results_view_2 WHERE sid=:sid ORDER BY subtaskid");
-    $subtasks->execute(array("sid" => $sid));
-    $subtasks = $subtasks->fetchAll();
-
-    $testcases = $this->db->prepare("SELECT testcaseid, accepted, verdict, time, memory, judge_name, judge_time FROM results_view WHERE sid=:sid ORDER BY testcaseid");
-    $testcases->execute(array("sid" => $sid));
-    $testcases = $testcases->fetchAll();
-
-    return $this->view->render($response, "submission.html", array("submission" => $submission, "subtasks" => $subtasks, "testcases" => $testcases));
+$app->get("/submissions/{submission_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\Submission::show($this, $request, $response);
 })->setName("submission");
 
 $app->get("/users/", function (Request $request, Response $response) {
-    $users = $this->db->query("SELECT uid, username, register_date FROM users ORDER BY uid");
-    return $this->view->render($response, "users.html", array("users" => $users));
+    return \Toyoj\Controllers\User::showAll($this, $request, $response);
 })->setName("user-list");
 
-$app->get("/users/{uid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $uid = $args["uid"];
-    $stmt = $this->db->prepare("SELECT uid, username, register_date FROM users WHERE uid = :uid");
-    $stmt->execute(array(":uid" => $uid));
-    $user = $stmt->fetch();
-    if(!$user) {
-        return ($this->errorview)($response, 404, "No Such User");
-    }
-    return $this->view->render($response, "user.html", array("user" => $user));
+$app->get("/users/{user_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
+    return \Toyoj\Controllers\User::show($this, $request, $response);
 })->setName("user");
 
 $app->run();

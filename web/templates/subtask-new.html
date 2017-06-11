@@ -7,8 +7,8 @@
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
-    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
+    <a href="{{ path_for('problem', { 'problem_id': problem.id }) }}">View Problem</a>
+    <a href="{{ path_for('problem-edit', { 'problem_id': problem.id }) }}">Edit Problem</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -18,10 +18,10 @@
         Score: <input type="number" name="score" min="1" value="100">
       </label>
     </div>
-{% for test in testcases %}
+{% for testcase in problem.testcases %}
     <div>
       <label>
-        <input type="checkbox" name="testcaseids[]" value="{{ test.testcaseid }}"> Test Case #{{ test.testcaseid }}
+        <input type="checkbox" name="testcase_ids[]" value="{{ testcase.id }}"> Test Case #{{ testcase.id }}
       </label>
     </div>
 {% endfor %}

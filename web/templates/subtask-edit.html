@@ -1,13 +1,13 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
 
-{% block title %}Edit Subtask #{{ subtask.subtaskid }} of {{ subtask.title }} - {{ parent() }}{% endblock %}
+{% block title %}Edit Subtask #{{ subtask.id }} of {{ subtask.problem.title }} - {{ parent() }}{% endblock %}
 
-{% block h2 %}Edit Subtask #{{ subtask.subtaskid }} of {{ subtask.title }}{% endblock %}
+{% block h2 %}Edit Subtask #{{ subtask.id }} of {{ subtask.problem.title }}{% endblock %}
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('subtask', { 'pid': subtask.pid, 'subtaskid' : subtask.subtaskid }) }}">View Subtask</a>
+    <a href="{{ path_for('subtask', { 'problem_id': subtask.problem.id, 'subtask_id' : subtask.id }) }}">View Subtask</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -17,17 +17,16 @@
         Score: <input type="number" name="score" min="1" value="{{ subtask.score }}">
       </label>
     </div>
-{% for test in testcases %}
+{% for rel in subtask.testcase_exists %}
     <div>
-      <input type="hidden" name="alltestcaseids[]" value="{{ test.testcaseid }}">
       <label>
-        <input type="checkbox" name="testcaseids[]" value="{{ test.testcaseid }}"{% if test.included %} checked{% endif %}> Test Case #{{ test.testcaseid }}
+        <input type="checkbox" name="testcase_ids[]" value="{{ rel.testcase_id }}"{% if rel.exists %} checked{% endif %}> Test Case #{{ rel.testcase_id }}
       </label>
     </div>
 {% endfor %}
     <div>
-      <input type="submit" value="Save">
-      <input type="submit" onclick="return confirm('Are you sure you want to DELETE this subtask?')" name="delete" value="Delete">
+      <button type="submit" name="update" value="update">Save</button>
+      <button type="submit" name="delete" value="delete">Delete</button>
     </div>
   </fieldset></form>
 {% endblock content %}

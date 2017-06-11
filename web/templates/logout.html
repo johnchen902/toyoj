@@ -6,7 +6,7 @@
 
 {% block content %}
 {% if not login %}
-{% include "message.html" with {"message" : "You are not logged in."} %}
+{% include "components/message.html" with {"message" : "You are not logged in."} %}
 {% endif %}
   <form method="post"><fieldset{% if not login %} disabled{% endif %}>
     <div>

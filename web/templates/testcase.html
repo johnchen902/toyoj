@@ -1,13 +1,13 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% block title %}Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
+{% block title %}Test Case #{{ testcase.id }} of {{ testcase.problem.title }} - {{ parent() }}{% endblock %}
 
-{% block h2 %}Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}{% endblock %}
+{% block h2 %}Test Case #{{ testcase.id }} of {{ testcase.problem.title }}{% endblock %}
 
 {% block nav2 %}
 {{ parent() }}{##}
 {% if testcase.canedit %}
-    <a href="{{ path_for('edit-test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">Edit</a>
+    <a href="{{ path_for('testcase-edit', { 'problem_id': testcase.problem_id, 'testcase_id': testcase.id }) }}">Edit</a>
 {% endif %}
 {% endblock nav2 %}
 
@@ -21,10 +21,10 @@
       <th>Checker</th>
     </tr>
     <tr>
-      <td><a href="{{ path_for('problem', { 'pid': testcase.pid }) }}">{{ testcase.title }}</a></td>
+      <td><a href="{{ path_for('problem', { 'problem_id': testcase.problem_id }) }}">{{ testcase.problem.title }}</a></td>
       <td>{{ testcase.time_limit }} ms</td>
       <td>{{ testcase.memory_limit }} KiB</td>
-      <td>{{ testcase.checker }}</td>
+      <td>{{ testcase.checker_name }}</td>
     </tr>
   </table>
   <h3>Input</h3>

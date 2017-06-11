@@ -6,5 +6,6 @@
 
 {% block content %}
   <h3>Register date</h3>
-  <time datetime="{{ user.register_date|date('c') }}">{{ user.register_date|date('Y-m-d') }}</time>
+  {% include "components/timestamp.html" with {"time": user.register_time} %}
+
 {% endblock content %}

@@ -1,0 +1,4 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+  <div class="message">
+    {{ message|e|replace({'\n': '<br>\n    '})|raw }} <span class="close-button" onclick="this.parentNode.parentNode.removeChild(this.parentNode)">&#x274C;</span>
+  </div>
