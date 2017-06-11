@@ -8,12 +8,6 @@ set_include_path(get_include_path() . PATH_SEPARATOR . "../classes/");
 spl_autoload_register();
 require "../vendor/autoload.php";
 
-function redirect(Response $response, int $code, string $location) {
-    $response = $response->withStatus($code);
-    $response = $response->withHeader("Location", $location);
-    return $response;
-}
-
 date_default_timezone_set("Asia/Taipei");
 
 $config["displayErrorDetails"] = true;
