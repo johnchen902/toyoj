@@ -6,7 +6,7 @@
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('test', { 'problem_id': testcase.problem_id, 'testcase_id': testcase.id }) }}">View Test Case</a>
+    <a href="{{ path_for('testcase', { 'problem_id': testcase.problem_id, 'testcase_id': testcase.id }) }}">View Test Case</a>
 {% endblock nav2 %}
 
 {% block content %}

@@ -18,10 +18,10 @@
         Score: <input type="number" name="score" min="1" value="100">
       </label>
     </div>
-{% for test in problem.testcases %}
+{% for testcase in problem.testcases %}
     <div>
       <label>
-        <input type="checkbox" name="testcase_ids[]" value="{{ test.id }}"> Test Case #{{ test.id }}
+        <input type="checkbox" name="testcase_ids[]" value="{{ testcase.id }}"> Test Case #{{ testcase.id }}
       </label>
     </div>
 {% endfor %}

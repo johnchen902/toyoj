@@ -125,25 +125,25 @@ $app->post("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", fu
     return \Toyoj\Controllers\Subtask::editOrDelete($this, $request, $response);
 });
 
-$app->get("/problems/{problem_id:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/testcases/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showAll($this, $request, $response);
-})->setName("test-list");
+})->setName("testcase-list");
 
-$app->get("/problems/{problem_id:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/testcases/new", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showCreatePage($this, $request, $response);
-})->setName("test-new");
-$app->post("/problems/{problem_id:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+})->setName("testcase-new");
+$app->post("/problems/{problem_id:[0-9]+}/testcases/new", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::create($this, $request, $response);
 });
 
-$app->get("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::show($this, $request, $response);
-})->setName("test");
+})->setName("testcase");
 
-$app->get("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showEditPage($this, $request, $response);
-})->setName("test-edit");
-$app->post("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+})->setName("testcase-edit");
+$app->post("/problems/{problem_id:[0-9]+}/testcases/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::editOrDelete($this, $request, $response);
 });
 

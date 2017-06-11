@@ -174,9 +174,9 @@ class Subtask {
 
                 $q = $c->qf->newUpdate()
                     ->table("subtask_testcases_view")
-                    ->set("exists", "testcase_id = ANY (ARRAY[:tests] :: integer[])")
+                    ->set("exists", "testcase_id = ANY (ARRAY[:testcases] :: integer[])")
                     ->where("subtask_id = ?", $data["subtask_id"])
-                    ->bindValue("tests", $data["testcase_ids"]);
+                    ->bindValue("testcases", $data["testcase_ids"]);
                 $c->db->perform($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);

@@ -40,7 +40,7 @@
     </tr>
 {% endfor %}
   </table>
-  <h3 id="test-cases">Test Cases</h3>
+  <h3 id="testcases">Test Cases</h3>
   <table>
     <tr>
       <th>ID</th>
@@ -51,7 +51,7 @@
     </tr>
 {% for testcase in problem.testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'problem_id': problem.id, 'testcase_id': testcase.id }) }}">{{ testcase.id }}</a></td>
+      <td><a href="{{ path_for('testcase', { 'problem_id': problem.id, 'testcase_id': testcase.id }) }}">{{ testcase.id }}</a></td>
       <td>{{ testcase.time_limit }} ms</td>
       <td>{{ testcase.memory_limit }} KiB</td>
       <td>{{ testcase.checker_name }}</td>

@@ -66,7 +66,7 @@
     </tr>
 {% for tc in s.testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'problem_id': s.problem_id, 'testcase_id': tc.testcase_id }) }}">{{ tc.testcase_id }}</a></td>
+      <td><a href="{{ path_for('testcase', { 'problem_id': s.problem_id, 'testcase_id': tc.testcase_id }) }}">{{ tc.testcase_id }}</a></td>
       <td>{{ tc.accepted is null ? "" : (tc.accepted ? "Yes" : "No") }}</td>
       <td>{{ tc.verdict }}</td>
       <td>{% if not tc.time is null %}{{ tc.time }} ms {% endif %}</td>
