@@ -7,7 +7,7 @@
 {% block nav2 %}
 {{ parent() }}{##}
 {% if testcase.canedit %}
-    <a href="{{ path_for('test-edit', { 'pid': testcase.problem_id, 'testid': testcase.id }) }}">Edit</a>
+    <a href="{{ path_for('test-edit', { 'problem_id': testcase.problem_id, 'testcase_id': testcase.id }) }}">Edit</a>
 {% endif %}
 {% endblock nav2 %}
 
@@ -21,7 +21,7 @@
       <th>Checker</th>
     </tr>
     <tr>
-      <td><a href="{{ path_for('problem', { 'pid': testcase.problem_id }) }}">{{ testcase.problem.title }}</a></td>
+      <td><a href="{{ path_for('problem', { 'problem_id': testcase.problem_id }) }}">{{ testcase.problem.title }}</a></td>
       <td>{{ testcase.time_limit }} ms</td>
       <td>{{ testcase.memory_limit }} KiB</td>
       <td>{{ testcase.checker_name }}</td>

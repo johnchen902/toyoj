@@ -12,7 +12,7 @@ class User {
     }
 
     public static function show($c, Request $request, Response $response) {
-        $user_id = $request->getAttribute("uid");
+        $user_id = $request->getAttribute("user_id");
         $q = self::baseUserQuery($c)->where("id = ?", $user_id);
         $user = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
         if(!$user)

@@ -15,19 +15,19 @@ class Problem {
     }
 
     public static function show($c, Request $request, Response $response) {
-        $pid = $request->getAttribute("pid");
-        $problem = self::getProblemWithSubtasksAndTestcases($c, $pid);
+        $problem_id = $request->getAttribute("problem_id");
+        $problem = self::getProblemWithSubtasksAndTestcases($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        $problem["cansubmit"] = self::checkSubmit($c, $pid);
-        $problem["canedit"] = self::checkEdit($c, $pid);
+        $problem["cansubmit"] = self::checkSubmit($c, $problem_id);
+        $problem["canedit"] = self::checkEdit($c, $problem_id);
         return $c->view->render($response, "problem.html",
                 ["problem" => $problem]);
     }
     public static function submit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid"];
+                return ["problem_id"];
             }
             protected function getFieldNames() {
                 return ["language", "code"];
@@ -39,22 +39,22 @@ class Problem {
                 return Problem::validateSubmission($data);
             }
             protected function checkPermissions($c, array $data) {
-                return Problem::checkSubmit($c, $data["pid"]);
+                return Problem::checkSubmit($c, $data["problem_id"]);
             }
             protected function getSuccessMessage() {
                 return "Submitted";
             }
             protected function getSuccessLocation($c, array $data, $result) {
-                return $c->router->pathFor("submission", ["sid" => $result]);
+                return $c->router->pathFor("submission", ["submission_id" => $result]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
-                return $c->router->pathFor("problem", ["pid" => $data["pid"]]);
+                return $c->router->pathFor("problem", ["problem_id" => $data["problem_id"]]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newInsert()
                     ->into("submissions")
                     ->cols([
-                        "problem_id" => $data["pid"],
+                        "problem_id" => $data["problem_id"],
                         "submitter_id" => $c->session["login"],
                         "language_name" => $data["language"],
                         "code" => $data["code"],
@@ -106,7 +106,7 @@ class Problem {
                 return "Problem Created";
             }
             protected function getSuccessLocation($c, array $data, $result) {
-                return $c->router->pathFor("problem", ["pid" => $result]);
+                return $c->router->pathFor("problem", ["problem_id" => $result]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("problem-new");
@@ -139,18 +139,18 @@ class Problem {
     }
 
     public static function showEditPage($c, Request $request, Response $response) {
-        $pid = $request->getAttribute("pid");
-        $problem = self::getProblemWithSubtasksAndTestcases($c, $pid);
+        $problem_id = $request->getAttribute("problem_id");
+        $problem = self::getProblemWithSubtasksAndTestcases($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        $page = self::checkEdit($c, $pid) ? "problem-edit.html" :
+        $page = self::checkEdit($c, $problem_id) ? "problem-edit.html" :
                 "problem-source.html";
         return $c->view->render($response, $page, ["problem" => $problem]);
     }
     public static function edit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid"];
+                return ["problem_id"];
             }
             protected function getFieldNames() {
                 return ["title", "statement", "ready"];
@@ -163,16 +163,16 @@ class Problem {
                 return Problem::validateProblem($data);
             }
             protected function checkPermissions($c, array $data) {
-                return Problem::checkEdit($c, $data["pid"]);
+                return Problem::checkEdit($c, $data["problem_id"]);
             }
             protected function getSuccessMessage() {
                 return "Problem Edited";
             }
             protected function getSuccessLocation($c, array $data, $result) {
-                return $c->router->pathFor("problem", ["pid" => $result]);
+                return $c->router->pathFor("problem", ["problem_id" => $result]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
-                return $c->router->pathFor("problem-edit", ["pid" => $result]);
+                return $c->router->pathFor("problem-edit", ["problem_id" => $result]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newUpdate()
@@ -182,7 +182,7 @@ class Problem {
                         "statement" => $data["statement"],
                         "ready" => $data["ready"],
                     ])
-                    ->where("id = ?", $pid);
+                    ->where("id = ?", $problem_id);
                 if($c->db->fetchAffected(
                         $q->getStatement(), $q->getBindValues()) != 1)
                     throw new \Exception();

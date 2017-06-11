@@ -5,19 +5,19 @@ use \Psr\Http\Message\ResponseInterface as Response;
 class TestCase {
     public static function showAll($c, Request $request, Response $response) {
         // TODO implement
-        $problem_id = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         return Utilities::redirect($response, 302,
-                $c->router->pathFor("problem", ["pid" => $problem_id]) .
+                $c->router->pathFor("problem", ["problem_id" => $problem_id]) .
                     "#test-cases");
     }
 
     public static function show($c, Request $request, Response $response) {
-        $problem_id = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
 
-        $testcase_id = $request->getAttribute("testid");
+        $testcase_id = $request->getAttribute("testcase_id");
         $testcase = self::getTestCaseById($c, $problem_id, $testcase_id);
         if(!$testcase)
             return ($c->errorview)($response, 404, "No Such Test Case");
@@ -29,7 +29,7 @@ class TestCase {
     }
 
     public static function showCreatePage($c, Request $request, Response $response) {
-        $problem_id = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
@@ -45,41 +45,41 @@ class TestCase {
     public static function create($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid"];
+                return ["problem_id"];
             }
             protected function getFieldNames() {
                 return ["time_limit", "memory_limit", "checker",
-                    "input", "output", "subtaskids"];
+                    "input", "output", "subtask_ids"];
             }
             protected function transformData(array &$data) {
                 $data["time_limit"] = (int) $data["time_limit"];
                 $data["memory_limit"] = (int) $data["memory_limit"];
                 $data["input"] = Utilities::crlf2lf($data["input"]);
                 $data["output"] = Utilities::crlf2lf($data["output"]);
-                $data["testcaseids"] = (array) $data["testcaseids"];
+                $data["testcase_ids"] = (array) $data["testcase_ids"];
             }
             protected function verifyData(array $data) {
                 return TestCase::validateTestCase($data);
             }
             protected function checkPermissions($c, array $data) {
-                return TestCase::checkCreate($c, $data["pid"]);
+                return TestCase::checkCreate($c, $data["problem_id"]);
             }
             protected function getSuccessMessage() {
                 return "Test Case Created";
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("test",
-                        ["pid" => $data["pid"], "testid" => $result]);
+                        ["problem_id" => $data["problem_id"], "testcase_id" => $result]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("test-new",
-                        ["pid" => $data["pid"]]);
+                        ["problem_id" => $data["problem_id"]]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newInsert()
                     ->into("testcases")
                     ->cols([
-                        "problem_id" => $data["pid"],
+                        "problem_id" => $data["problem_id"],
                         "time_limit" => $data["time_limit"],
                         "memory_limit" => $data["memory_limit"],
                         "checker_name" => $data["checker"],
@@ -94,9 +94,9 @@ class TestCase {
                     ->cols(["exists" => TRUE])
                     ->where("testcase_id = ?", $id)
                     ->where("subtask_id = ANY (ARRAY[?] :: integer[])",
-                        $data["subtaskids"]);
+                        $data["subtask_ids"]);
                 $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
-                if($cnt != count($data["subtaskids"]))
+                if($cnt != count($data["subtask_ids"]))
                     throw new \Exception();
 
                 return $id;
@@ -119,12 +119,12 @@ class TestCase {
     }
 
     public static function showEditPage($c, Request $request, Response $response) {
-        $problem_id = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
 
-        $testcase_id = $request->getAttribute("testid");
+        $testcase_id = $request->getAttribute("testcase_id");
         $testcase = self::getTestCaseById($c, $problem_id, $testcase_id);
         if(!$testcase)
             return ($c->errorview)($response, 404, "No Such Test Case");
@@ -148,48 +148,48 @@ class TestCase {
         } else {
             $c->messages[] = "WTF neither delete nor update.";
             return Utilities::redirectRoute($response, 303, "test-edit", [
-                "pid" => $request->getAttribute("pid"),
-                "subtaskid" => $request->getAttribute("subtaskid"),
+                "problem_id" => $request->getAttribute("problem_id"),
+                "subtask_id" => $request->getAttribute("subtask_id"),
             ]);
         }
     }
     public static function edit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid", "testid"];
+                return ["problem_id", "testcase_id"];
             }
             protected function getFieldNames() {
                 return ["time_limit", "memory_limit", "checker",
-                    "input", "output", "subtaskids"];
+                    "input", "output", "subtask_ids"];
             }
             protected function transformData(array &$data) {
                 $data["time_limit"] = (int) $data["time_limit"];
                 $data["memory_limit"] = (int) $data["memory_limit"];
                 $data["input"] = Utilities::crlf2lf($data["input"]);
                 $data["output"] = Utilities::crlf2lf($data["output"]);
-                $data["testcaseids"] = (array) $data["testcaseids"];
+                $data["testcase_ids"] = (array) $data["testcase_ids"];
             }
             protected function verifyData(array $data) {
                 return TestCase::validateTestCase($data);
             }
             protected function checkPermissions($c, array $data) {
-                return TestCase::checkEdit($c, $data["pid"],
-                        $data["testid"]);
+                return TestCase::checkEdit($c, $data["problem_id"],
+                        $data["testcase_id"]);
             }
             protected function getSuccessMessage() {
                 return "Test Case Edited";
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("test", [
-                    "pid" => $data["pid"],
-                    "testid" => $data["testid"],
+                    "problem_id" => $data["problem_id"],
+                    "testcase_id" => $data["testcase_id"],
                 ]);
             }
             protected function getErrorLocation(
                     $c, array $data, \Exception $e) {
                 return $c->router->pathFor("test-edit", [
-                    "pid" => $data["pid"],
-                    "testid" => $data["testid"],
+                    "problem_id" => $data["problem_id"],
+                    "testcase_id" => $data["testcase_id"],
                 ]);
             }
             protected function transaction($c, array $data) {
@@ -202,8 +202,8 @@ class TestCase {
                         "input" => $data["input"],
                         "output" => $data["output"],
                     ])
-                    ->where("id = ?", $data["testid"])
-                    ->where("problem_id = ?", $data["pid"]);
+                    ->where("id = ?", $data["testcase_id"])
+                    ->where("problem_id = ?", $data["problem_id"]);
                 $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
@@ -212,8 +212,8 @@ class TestCase {
                     ->table("subtask_testcases_view")
                     ->set("exists",
                             "subtask_id = ANY (ARRAY[:subtasks] :: integer[])")
-                    ->where("testcase_id = ?", $data["testid"])
-                    ->bindValue("subtasks", $data["subtaskids"]);
+                    ->where("testcase_id = ?", $data["testcase_id"])
+                    ->bindValue("subtasks", $data["subtask_ids"]);
                 $c->db->perform($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
@@ -222,10 +222,10 @@ class TestCase {
         // TODO
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid", "subtaskid"];
+                return ["problem_id", "subtask_id"];
             }
             protected function checkPermissions($c, array $data) {
-                return TestCase::checkDelete($c, $data["pid"],
+                return TestCase::checkDelete($c, $data["problem_id"],
                         $data["subtask_id"]);
             }
             protected function getSuccessMessage() {
@@ -233,19 +233,19 @@ class TestCase {
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("subtask-list",
-                        ["pid" => $data["pid"]]);
+                        ["problem_id" => $data["problem_id"]]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
-                    "pid" => $data["pid"],
-                    "subtaskid" => $data["subtaskid"],
+                    "problem_id" => $data["problem_id"],
+                    "subtask_id" => $data["subtask_id"],
                 ]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newDelete()
                     ->from("subtasks")
-                    ->where("problem_id = ?", $data["pid"])
-                    ->where("id = ?", $data["subtaskid"]);
+                    ->where("problem_id = ?", $data["problem_id"])
+                    ->where("id = ?", $data["subtask_id"]);
                 $cnt = $c->db->fetchAffected(
                         $q->getStatement(), $q->getBindValues());
                 if($cnt != 1)

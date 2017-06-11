@@ -23,9 +23,9 @@
 {% for prob in problems %}
     <tr>
       <td>{{ prob.id }}</td>
-      <td><a href="{{ path_for('problem', { 'pid': prob.id }) }}">{{ prob.title }}</a></td>
+      <td><a href="{{ path_for('problem', { 'problem_id': prob.id }) }}">{{ prob.title }}</a></td>
       <td>{% include "components/timestamp.html" with {"time": prob.create_time} %}</td>
-      <td><a href="{{ path_for('user', {'uid': prob.manager_id }) }}">{{ prob.manager_name }}</a></td>
+      <td><a href="{{ path_for('user', {'user_id': prob.manager_id }) }}">{{ prob.manager_name }}</a></td>
       <td>{{ prob.ready ? "Ready" : "Not Ready"}}</td>
     </tr>
 {% endfor %}

@@ -5,27 +5,27 @@ use \Psr\Http\Message\ResponseInterface as Response;
 class Subtask {
     public static function showAll($c, Request $request, Response $response) {
         // TODO implement
-        $pid = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         return Utilities::redirect($response, 302,
-                $c->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+                $c->router->pathFor("problem", ["problem_id" => $problem_id]) . "#subtasks");
     }
 
     public static function show($c, Request $request, Response $response) {
         // TODO implement
-        $pid = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         return Utilities::redirect($response, 302,
-                $c->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
+                $c->router->pathFor("problem", ["problem_id" => $problem_id]) . "#subtasks");
     }
 
     public static function showCreatePage($c, Request $request, Response $response) {
-        $pid = $request->getAttribute("pid");
-        $problem = Problem::getBaseProblem($c, $pid);
+        $problem_id = $request->getAttribute("problem_id");
+        $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
-        if(!self::checkCreate($c, $pid))
+        if(!self::checkCreate($c, $problem_id))
             return ($c->errorview)($response, 403, "Forbidden");
 
-        $testcases = Problem::getTestcasesByProblemId($c, $pid);
+        $testcases = Problem::getTestcasesByProblemId($c, $problem_id);
         $problem["testcases"] = $testcases;
 
         return $c->view->render($response, "subtask-new.html",
@@ -34,37 +34,37 @@ class Subtask {
     public static function create($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid"];
+                return ["problem_id"];
             }
             protected function getFieldNames() {
-                return ["score", "testcaseids"];
+                return ["score", "testcase_ids"];
             }
             protected function transformData(array &$data) {
                 $data["score"] = (int) $data["score"];
-                $data["testcaseids"] = (array) $data["testcaseids"];
+                $data["testcase_ids"] = (array) $data["testcase_ids"];
             }
             protected function verifyData(array $data) {
                 return Subtask::validateSubtask($data);
             }
             protected function checkPermissions($c, array $data) {
-                return Subtask::checkCreate($c, $data["pid"]);
+                return Subtask::checkCreate($c, $data["problem_id"]);
             }
             protected function getSuccessMessage() {
                 return "Subtask Created";
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("subtask",
-                        ["pid" => $data["pid"], "subtaskid" => $result]);
+                        ["problem_id" => $data["problem_id"], "subtask_id" => $result]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-new",
-                        ["pid" => $data["pid"]]);
+                        ["problem_id" => $data["problem_id"]]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newInsert()
                     ->into("subtasks")
                     ->cols([
-                        "problem_id" => $data["pid"],
+                        "problem_id" => $data["problem_id"],
                         "score" => $data["score"],
                     ])
                     ->returning(["id"]);
@@ -75,9 +75,9 @@ class Subtask {
                     ->cols(["exists" => TRUE])
                     ->where("subtask_id = ?", $id)
                     ->where("testcase_id = ANY (ARRAY[?] :: integer[])",
-                        $data["testcaseids"]);
+                        $data["testcase_ids"]);
                 $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
-                if($cnt != count($data["testcaseids"]))
+                if($cnt != count($data["testcase_ids"]))
                     throw new \Exception();
 
                 return $id;
@@ -95,12 +95,12 @@ class Subtask {
     }
 
     public static function showEditPage($c, Request $request, Response $response) {
-        $problem_id = $request->getAttribute("pid");
+        $problem_id = $request->getAttribute("problem_id");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
             return ($c->errorview)($response, 404, "No Such Problem");
 
-        $subtask_id = $request->getAttribute("subtaskid");
+        $subtask_id = $request->getAttribute("subtask_id");
         $subtask = self::getSubtaskById($c, $problem_id, $subtask_id);
         if(!$subtask)
             return ($c->errorview)($response, 404, "No Such Subtask");
@@ -123,28 +123,28 @@ class Subtask {
             return self::edit($c, $request, $response);
         } else {
             return Utilities::redirectRoute($response, 303, "subtask-edit", [
-                "pid" => $request->getAttribute("pid"),
-                "subtaskid" => $request->getAttribute("subtaskid"),
+                "problem_id" => $request->getAttribute("problem_id"),
+                "subtask_id" => $request->getAttribute("subtask_id"),
             ]);
         }
     }
     private static function edit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid", "subtaskid"];
+                return ["problem_id", "subtask_id"];
             }
             protected function getFieldNames() {
-                return ["score", "testcaseids"];
+                return ["score", "testcase_ids"];
             }
             protected function transformData(array &$data) {
                 $data["score"] = (int) $data["score"];
-                $data["testcaseids"] = (array) $data["testcaseids"];
+                $data["testcase_ids"] = (array) $data["testcase_ids"];
             }
             protected function verifyData(array $data) {
                 return Subtask::validateSubtask($data);
             }
             protected function checkPermissions($c, array $data) {
-                return Subtask::checkEdit($c, $data["pid"],
+                return Subtask::checkEdit($c, $data["problem_id"],
                         $data["subtask_id"]);
             }
             protected function getSuccessMessage() {
@@ -152,22 +152,22 @@ class Subtask {
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("subtask", [
-                    "pid" => $data["pid"],
-                    "subtaskid" => $data["subtaskid"],
+                    "problem_id" => $data["problem_id"],
+                    "subtask_id" => $data["subtask_id"],
                 ]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
-                    "pid" => $data["pid"],
-                    "subtaskid" => $data["subtaskid"],
+                    "problem_id" => $data["problem_id"],
+                    "subtask_id" => $data["subtask_id"],
                 ]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newUpdate()
                     ->table("subtasks")
                     ->cols(["score" => $data["score"]])
-                    ->where("id = ?", $data["subtaskid"])
-                    ->where("problem_id = ?", $data["pid"]);
+                    ->where("id = ?", $data["subtask_id"])
+                    ->where("problem_id = ?", $data["problem_id"]);
                 $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
@@ -175,8 +175,8 @@ class Subtask {
                 $q = $c->qf->newUpdate()
                     ->table("subtask_testcases_view")
                     ->set("exists", "testcase_id = ANY (ARRAY[:tests] :: integer[])")
-                    ->where("subtask_id = ?", $data["subtaskid"])
-                    ->bindValue("tests", $data["testcaseids"]);
+                    ->where("subtask_id = ?", $data["subtask_id"])
+                    ->bindValue("tests", $data["testcase_ids"]);
                 $c->db->perform($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
@@ -184,10 +184,10 @@ class Subtask {
     private static function delete($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["pid", "subtaskid"];
+                return ["problem_id", "subtask_id"];
             }
             protected function checkPermissions($c, array $data) {
-                return Subtask::checkDelete($c, $data["pid"],
+                return Subtask::checkDelete($c, $data["problem_id"],
                         $data["subtask_id"]);
             }
             protected function getSuccessMessage() {
@@ -195,19 +195,19 @@ class Subtask {
             }
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("subtask-list",
-                        ["pid" => $data["pid"]]);
+                        ["problem_id" => $data["problem_id"]]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
-                    "pid" => $data["pid"],
-                    "subtaskid" => $data["subtaskid"],
+                    "problem_id" => $data["problem_id"],
+                    "subtask_id" => $data["subtask_id"],
                 ]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newDelete()
                     ->from("subtasks")
-                    ->where("problem_id = ?", $data["pid"])
-                    ->where("id = ?", $data["subtaskid"]);
+                    ->where("problem_id = ?", $data["problem_id"])
+                    ->where("id = ?", $data["subtask_id"]);
                 $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();

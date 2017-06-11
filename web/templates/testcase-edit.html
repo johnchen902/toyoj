@@ -6,7 +6,7 @@
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('test', { 'pid': testcase.problem_id, 'testid': testcase.id }) }}">View Test Case</a>
+    <a href="{{ path_for('test', { 'problem_id': testcase.problem_id, 'testcase_id': testcase.id }) }}">View Test Case</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -41,7 +41,7 @@
 {% for rel in testcase.subtask_exists %}
     <div>
       <label>
-        <input type="checkbox" name="subtaskids[]" value="{{ rel.subtask_id }}"{% if rel.exists %} checked{% endif %}> Subtask #{{ rel.subtask_id }}
+        <input type="checkbox" name="subtask_ids[]" value="{{ rel.subtask_id }}"{% if rel.exists %} checked{% endif %}> Subtask #{{ rel.subtask_id }}
       </label>
     </div>
 {% endfor %}

@@ -12,9 +12,9 @@
 {% block nav2 %}
 {{ parent() }}{##}
 {% if problem.canedit %}
-    <a href="{{ path_for('problem-edit', { 'pid': problem.id }) }}">Edit</a>
+    <a href="{{ path_for('problem-edit', { 'problem_id': problem.id }) }}">Edit</a>
 {% else %}
-    <a href="{{ path_for('problem-edit', { 'pid': problem.id }) }}">View Source</a>
+    <a href="{{ path_for('problem-edit', { 'problem_id': problem.id }) }}">View Source</a>
 {% endif %}
 {% endblock nav2 %}
 
@@ -24,7 +24,7 @@
   {% include "components/timestamp.html" with {"time": problem.create_time} %}
 
   <h3>Manager</h3>
-  <a href="{{ path_for('user', {'uid': problem.manager_id }) }}">{{ problem.manager_name }}</a><br>
+  <a href="{{ path_for('user', {'user_id': problem.manager_id }) }}">{{ problem.manager_name }}</a><br>
   <h3 id="subtasks">Subtasks</h3>
   <table>
     <tr>
@@ -51,7 +51,7 @@
     </tr>
 {% for testcase in problem.testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'pid': problem.id, 'testid': testcase.id }) }}">{{ testcase.id }}</a></td>
+      <td><a href="{{ path_for('test', { 'problem_id': problem.id, 'testcase_id': testcase.id }) }}">{{ testcase.id }}</a></td>
       <td>{{ testcase.time_limit }} ms</td>
       <td>{{ testcase.memory_limit }} KiB</td>
       <td>{{ testcase.checker_name }}</td>

@@ -89,61 +89,61 @@ $app->post("/problems/new", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Problem::create($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Problem::show($this, $request, $response);
 })->setName("problem");
-$app->post("/problems/{pid:[0-9]+}/", function (Request $request, Response $response) {
+$app->post("/problems/{problem_id:[0-9]+}/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Problem::submit($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/edit", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Problem::showEditPage($this, $request, $response);
 })->setName("problem-edit");
-$app->post("/problems/{pid:[0-9]+}/edit", function (Request $request, Response $response) {
+$app->post("/problems/{problem_id:[0-9]+}/edit", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Problem::edit($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/subtasks/", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::showAll($this, $request, $response);
 })->setName("subtask-list");
 
-$app->get("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::showCreatePage($this, $request, $response);
 })->setName("subtask-new");
-$app->post("/problems/{pid:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
+$app->post("/problems/{problem_id:[0-9]+}/subtasks/new", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::create($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::show($this, $request, $response);
 })->setName("subtask");
 
-$app->get("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response) {
+$app->get("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::showEditPage($this, $request, $response);
 })->setName("subtask-edit");
-$app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (Request $request, Response $response) {
+$app->post("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Subtask::editOrDelete($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showAll($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showCreatePage($this, $request, $response);
 })->setName("test-new");
-$app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
+$app->post("/problems/{problem_id:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::create($this, $request, $response);
 });
 
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::show($this, $request, $response);
 })->setName("test");
 
-$app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+$app->get("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showEditPage($this, $request, $response);
 })->setName("test-edit");
-$app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
+$app->post("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::edit($this, $request, $response);
 });
 
@@ -151,7 +151,7 @@ $app->get("/submissions/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Submission::showAll($this, $request, $response);
 })->setName("submission-list");
 
-$app->get("/submissions/{sid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+$app->get("/submissions/{submission_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\Submission::show($this, $request, $response);
 })->setName("submission");
 
@@ -159,7 +159,7 @@ $app->get("/users/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\User::showAll($this, $request, $response);
 })->setName("user-list");
 
-$app->get("/users/{uid:[0-9]+}/", function (Request $request, Response $response, array $args) {
+$app->get("/users/{user_id:[0-9]+}/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\User::show($this, $request, $response);
 })->setName("user");
 

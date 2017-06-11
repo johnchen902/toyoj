@@ -13,18 +13,18 @@ class Submission {
     }
 
     public static function show($c, Request $request, Response $response) {
-        $sid = $request->getAttribute("sid");
+        $submission_id = $request->getAttribute("submission_id");
         $q = self::baseSubmissionQuery($c)
             ->cols(["s.code"])
-            ->where("s.id = ?", $sid);
+            ->where("s.id = ?", $submission_id);
         $submission = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
         if(!$submission)
             return ($c->errorview)($response, 404, "No Such Submission");
 
-        $subtasks = self::getSubtaskResultsBySubmission($c, $sid);
+        $subtasks = self::getSubtaskResultsBySubmission($c, $submission_id);
         $submission["subtasks"] = $subtasks;
 
-        $testcases = self::getResultsBySubmission($c, $sid);
+        $testcases = self::getResultsBySubmission($c, $submission_id);
         $submission["testcases"] = $testcases;
 
         return $c->view->render($response, "submission.html",

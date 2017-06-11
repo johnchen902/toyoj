@@ -19,8 +19,8 @@
       <th>Judge Time</th>
     </tr>
     <tr>
-      <td><a href="{{ path_for('problem', { 'pid': s.problem_id }) }}">{{ s.problem_title }}</a></td>
-      <td><a href="{{ path_for('user', {'uid': s.submitter_id }) }}">{{ s.submitter_username }}</a></td>
+      <td><a href="{{ path_for('problem', { 'problem_id': s.problem_id }) }}">{{ s.problem_title }}</a></td>
+      <td><a href="{{ path_for('user', {'user_id': s.submitter_id }) }}">{{ s.submitter_username }}</a></td>
       <td>{% include "components/yes-no-unsure.html" with {"yes": s.accepted, "no": s.rejected} %}</td>
       <td>{% include "components/min-max-full.html" with {"min": s.minscore, "max": s.maxscore, "full": s.fullscore} %}</td>
       <td>{% if not s.time is null %}{{ s.time }} ms {% endif %}</td>
@@ -66,7 +66,7 @@
     </tr>
 {% for tc in s.testcases %}
     <tr>
-      <td><a href="{{ path_for('test', { 'pid': s.problem_id, 'testid': tc.testcase_id }) }}">{{ tc.testcase_id }}</a></td>
+      <td><a href="{{ path_for('test', { 'problem_id': s.problem_id, 'testcase_id': tc.testcase_id }) }}">{{ tc.testcase_id }}</a></td>
       <td>{{ tc.accepted is null ? "" : (tc.accepted ? "Yes" : "No") }}</td>
       <td>{{ tc.verdict }}</td>
       <td>{% if not tc.time is null %}{{ tc.time }} ms {% endif %}</td>
