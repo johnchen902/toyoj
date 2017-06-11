@@ -64,17 +64,24 @@ $app->get("/", function (Request $request, Response $response) {
 })->setName("index");
 
 $app->get("/login", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Login::get($this, $request, $response);
+    return \Toyoj\Controllers\Account::showLoginPage($this, $request, $response);
 })->setName("login");
 $app->post("/login", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Login::post($this, $request, $response);
+    return \Toyoj\Controllers\Account::login($this, $request, $response);
 });
 
 $app->get("/logout", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Logout::get($this, $request, $response);
+    return \Toyoj\Controllers\Account::showLogoutPage($this, $request, $response);
 })->setName("logout");
 $app->post("/logout", function (Request $request, Response $response) {
-    return \Toyoj\Controllers\Logout::post($this, $request, $response);
+    return \Toyoj\Controllers\Account::logout($this, $request, $response);
+});
+
+$app->get("/signup", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Account::showSignupPage($this, $request, $response);
+})->setName("signup");
+$app->post("/signup", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Account::signup($this, $request, $response);
 });
 
 $app->get("/problems/", function (Request $request, Response $response) {
@@ -144,13 +151,6 @@ $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request
 })->setName("test-edit");
 $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::edit($this, $request, $response);
-});
-
-$app->get("/signup", function (Request $request, Response $response) {
-    return $this->view->render($response, "signup.html");
-})->setName("signup");
-$app->post("/signup", function (Request $request, Response $response) {
-    return redirect($response, 303, $this->router->pathFor("signup"));
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
