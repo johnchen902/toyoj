@@ -186,7 +186,7 @@ class Subtask {
                             "testcase_id = ANY (ARRAY[:tests] :: integer[])")
                     ->where("subtask_id = ?", $data["subtaskid"])
                     ->bindValue("tests", $data["testcaseids"]);
-                $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
+                $c->db->perform($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
     }
