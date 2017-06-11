@@ -11,7 +11,7 @@
 {% endblock nav2 %}
 
 {% block content %}
-  <form method="post"><fieldset>
+  <form method="post">
     <div>
       <label>
         Score: <input type="number" name="score" min="1" value="{{ subtask.score }}">
@@ -28,5 +28,5 @@
       <button type="submit" name="update" value="update">Save</button>
       <button type="submit" name="delete" value="delete">Delete</button>
     </div>
-  </fieldset></form>
+  </form>
 {% endblock content %}

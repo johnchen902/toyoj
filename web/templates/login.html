@@ -7,8 +7,8 @@
 {% block content %}
 {% if login %}
 {% include "components/message.html" with {"message" : "You are already logged in."} %}
-{% endif %}
-  <form method="post"><fieldset{% if login %} disabled{% endif %}>
+{% else %}
+  <form method="post">
     <div>
       <label>
         Username: <input type="text" name="username" autofocus>
@@ -22,5 +22,6 @@
     <div>
       <input type="submit" value="Log in">
     </div>
-  </fieldset></form>
+  </form>
+{% endif %}
 {% endblock content %}

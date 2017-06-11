@@ -10,7 +10,7 @@
 {% endblock nav2 %}
 
 {% block content %}
-  <form method="post"><fieldset>
+  <form method="post">
     <div>
       <label>
         Time: <input type="text" name="time_limit" value="{{ testcase.time_limit }}">
@@ -49,5 +49,5 @@
       <button type="submit" name="update" value="update">Save</button>
       <button type="submit" name="delete" value="delete">Delete</button>
     </div>
-  </fieldset></form>
+  </form>
 {% endblock content %}

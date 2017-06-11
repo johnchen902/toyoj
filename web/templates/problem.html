@@ -65,7 +65,7 @@
 {% include "components/message.html" with {"message" : "This problem is not ready for submission."} %}
 {% endif %}
 {% if problem.cansubmit %}
-  <form method="post"><fieldset>
+  <form method="post">
     <input type="hidden" name="language" value="C++14">
     <div>
       <label>
@@ -76,7 +76,7 @@
     <div>
       <input type="submit" value="Submit">
     </div>
-  </fieldset></form>
+  </form>
 {% endif %}
 {% endif %}
 {% endblock content %}
