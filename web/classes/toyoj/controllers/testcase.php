@@ -153,7 +153,7 @@ class TestCase {
             ]);
         }
     }
-    public static function edit($c, Request $request, Response $response) {
+    private static function edit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
                 return ["problem_id", "testcase_id"];
@@ -218,36 +218,34 @@ class TestCase {
             }
         })->handle($c, $request, $response);
     }
-    public static function delete($c, Request $request, Response $response) {
-        // TODO
+    private static function delete($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
-                return ["problem_id", "subtask_id"];
+                return ["problem_id", "testcase_id"];
             }
             protected function checkPermissions($c, array $data) {
                 return TestCase::checkDelete($c, $data["problem_id"],
-                        $data["subtask_id"]);
+                        $data["testcase_id"]);
             }
             protected function getSuccessMessage() {
                 return "Test Case Deleted";
             }
             protected function getSuccessLocation($c, array $data, $result) {
-                return $c->router->pathFor("subtask-list",
+                return $c->router->pathFor("test-list",
                         ["problem_id" => $data["problem_id"]]);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
-                return $c->router->pathFor("subtask-edit", [
+                return $c->router->pathFor("test-edit", [
                     "problem_id" => $data["problem_id"],
-                    "subtask_id" => $data["subtask_id"],
+                    "testcase_id" => $data["testcase_id"],
                 ]);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newDelete()
-                    ->from("subtasks")
+                    ->from("testcases")
                     ->where("problem_id = ?", $data["problem_id"])
-                    ->where("id = ?", $data["subtask_id"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                    ->where("id = ?", $data["testcase_id"]);
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
             }

@@ -127,7 +127,7 @@ $app->post("/problems/{problem_id:[0-9]+}/subtasks/{subtask_id:[0-9]+}/edit", fu
 
 $app->get("/problems/{problem_id:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showAll($this, $request, $response);
-});
+})->setName("test-list");
 
 $app->get("/problems/{problem_id:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
     return \Toyoj\Controllers\TestCase::showCreatePage($this, $request, $response);
@@ -144,7 +144,7 @@ $app->get("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", funct
     return \Toyoj\Controllers\TestCase::showEditPage($this, $request, $response);
 })->setName("test-edit");
 $app->post("/problems/{problem_id:[0-9]+}/tests/{testcase_id:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    return \Toyoj\Controllers\TestCase::edit($this, $request, $response);
+    return \Toyoj\Controllers\TestCase::editOrDelete($this, $request, $response);
 });
 
 $app->get("/submissions/", function (Request $request, Response $response) {
