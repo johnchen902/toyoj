@@ -6,8 +6,7 @@ class Submission {
     public static function showAll($c, Request $request, Response $response) {
         $q = self::baseSubmissionQuery($c)
             ->orderBy(["s.id DESC"]);
-        $submissions = $c->db->fetchAll(
-                $q->getStatement(), $q->getBindValues());
+        $submissions = $c->db->fetchAll($q->getStatement(), $q->getBindValues());
 
         return $c->view->render($response, "submission-list.html",
                 ["submissions" => $submissions]);
@@ -18,45 +17,14 @@ class Submission {
         $q = self::baseSubmissionQuery($c)
             ->cols(["s.code"])
             ->where("s.id = ?", $sid);
-        $submission = $c->db->fetchOne(
-                $q->getStatement(), $q->getBindValues());
+        $submission = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
         if(!$submission)
             return ($c->errorview)($response, 404, "No Such Submission");
 
-        $q = $c->qf->newSelect()
-            ->cols([
-                "subtask_id",
-                "accepted",
-                "rejected",
-                "time",
-                "memory",
-                "minscore",
-                "maxscore",
-                "fullscore",
-                "judge_time",
-            ])
-            ->from("subtask_results_view")
-            ->where("submission_id = ?", $sid)
-            ->orderBy(["subtask_id ASC"]);
-        $subtasks = $c->db->fetchAll(
-                $q->getStatement(), $q->getBindValues());
+        $subtasks = self::getSubtaskResultsBySubmission($c, $sid);
         $submission["subtasks"] = $subtasks;
 
-        $q = $c->qf->newSelect()
-            ->cols([
-                "testcase_id",
-                "accepted",
-                "verdict",
-                "time",
-                "memory",
-                "judge_name",
-                "judge_time",
-            ])
-            ->from("results_view")
-            ->where("submission_id = ?", $sid)
-            ->orderBy(["testcase_id ASC"]);
-        $testcases = $c->db->fetchAll(
-                $q->getStatement(), $q->getBindValues());
+        $testcases = self::getResultsBySubmission($c, $sid);
         $submission["testcases"] = $testcases;
 
         return $c->view->render($response, "submission.html",
@@ -87,6 +55,42 @@ class Submission {
             ->innerJoin("users AS u", "s.submitter_id = u.id")
             ->leftJoin("submission_results_view AS r",
                     "s.id = r.submission_id");
+    }
+
+    public static function getSubtaskResultsBySubmission($c, $submission_id) {
+        $q = $c->qf->newSelect()
+            ->cols([
+                "subtask_id",
+                "accepted",
+                "rejected",
+                "time",
+                "memory",
+                "minscore",
+                "maxscore",
+                "fullscore",
+                "judge_time",
+            ])
+            ->from("subtask_results_view")
+            ->where("submission_id = ?", $submission_id)
+            ->orderBy(["subtask_id ASC"]);
+        return $c->db->fetchAll($q->getStatement(), $q->getBindValues());
+    }
+
+    public static function getResultsBySubmission($c, $submission_id) {
+        $q = $c->qf->newSelect()
+            ->cols([
+                "testcase_id",
+                "accepted",
+                "verdict",
+                "time",
+                "memory",
+                "judge_name",
+                "judge_time",
+            ])
+            ->from("results_view")
+            ->where("submission_id = ?", $submission_id)
+            ->orderBy(["testcase_id ASC"]);
+        return $c->db->fetchAll($q->getStatement(), $q->getBindValues());
     }
 }
 ?>

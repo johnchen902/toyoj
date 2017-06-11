@@ -47,8 +47,7 @@ class Problem {
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("submission", ["sid" => $result]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("problem", ["pid" => $data["pid"]]);
             }
             protected function transaction($c, array $data) {
@@ -61,8 +60,7 @@ class Problem {
                         "code" => $data["code"],
                     ])
                     ->returning(["id"]);
-                return $c->db->fetchValue(
-                        $q->getStatement(), $q->getBindValues());
+                return $c->db->fetchValue($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
     }
@@ -85,8 +83,7 @@ class Problem {
         return $e;
     }
 
-    public static function showCreatePage(
-            $c, Request $request, Response $response) {
+    public static function showCreatePage($c, Request $request, Response $response) {
         if(!self::checkCreate($c))
             return ($c->errorview)($response, 403, "Forbidden");
         return $c->view->render($response, "problem-new.html");
@@ -111,8 +108,7 @@ class Problem {
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("problem", ["pid" => $result]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("problem-new");
             }
             protected function transaction($c, array $data) {
@@ -125,8 +121,7 @@ class Problem {
                         "ready" => false,
                     ])
                     ->returning(["id"]);
-                return $c->db->fetchValue(
-                        $q->getStatement(), $q->getBindValues());
+                return $c->db->fetchValue($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
     }
@@ -138,14 +133,12 @@ class Problem {
             ->cols(["1"])
             ->from("user_permissions")
             ->where("user_id = ?", $login)
-            ->where("permission_name = 'newproblem'")
-            ;
-        $one = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
-        return boolval($one);
+            ->where("permission_name = 'newproblem'");
+        $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
+        return boolval($ok);
     }
 
-    public static function showEditPage(
-            $c, Request $request, Response $response) {
+    public static function showEditPage($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
         $problem = self::getProblemWithSubtasksAndTestcases($c, $pid);
         if(!$problem)
@@ -178,8 +171,7 @@ class Problem {
             protected function getSuccessLocation($c, array $data, $result) {
                 return $c->router->pathFor("problem", ["pid" => $result]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("problem-edit", ["pid" => $result]);
             }
             protected function transaction($c, array $data) {
@@ -205,8 +197,7 @@ class Problem {
             ->cols(["1"])
             ->from("problems")
             ->where("id = ?", $problem_id)
-            ->where("manager_id = ?", $login)
-            ;
+            ->where("manager_id = ?", $login);
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
     }
@@ -246,8 +237,7 @@ class Problem {
             ->cols(["id", "score"])
             ->from("subtasks")
             ->where("problem_id = ?", $problem_id)
-            ->orderBy(["id"])
-            ;
+            ->orderBy(["id"]);
         return $c->db->fetchAssoc($q->getStatement(), $q->getBindValues());
     }
     public static function getTestcasesByProblemId($c, $problem_id) {
@@ -255,8 +245,7 @@ class Problem {
             ->cols(["id", "time_limit", "memory_limit", "checker_name"])
             ->from("testcases")
             ->where("problem_id = ?", $problem_id)
-            ->orderBy(["id"])
-            ;
+            ->orderBy(["id"]);
         return $c->db->fetchAssoc($q->getStatement(), $q->getBindValues());
     }
     private static function fillSubtasksAndTestcasesRelation(
@@ -265,8 +254,7 @@ class Problem {
             ->cols(["subtask_id", "testcase_id"])
             ->from("subtask_testcases")
             ->where("problem_id = ?", $problem_id)
-            ->orderBy(["subtask_id", "testcase_id"])
-            ;
+            ->orderBy(["subtask_id", "testcase_id"]);
         $rels = $c->db->fetchAll($q->getStatement(), $q->getBindValues());
 
         foreach($subtasks as &$subtask)

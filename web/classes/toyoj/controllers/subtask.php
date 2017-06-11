@@ -17,8 +17,7 @@ class Subtask {
                 $c->router->pathFor("problem", ["pid" => $pid]) . "#subtasks");
     }
 
-    public static function showCreatePage(
-            $c, Request $request, Response $response) {
+    public static function showCreatePage($c, Request $request, Response $response) {
         $pid = $request->getAttribute("pid");
         $problem = Problem::getBaseProblem($c, $pid);
         if(!$problem)
@@ -57,8 +56,7 @@ class Subtask {
                 return $c->router->pathFor("subtask",
                         ["pid" => $data["pid"], "subtaskid" => $result]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-new",
                         ["pid" => $data["pid"]]);
             }
@@ -70,8 +68,7 @@ class Subtask {
                         "score" => $data["score"],
                     ])
                     ->returning(["id"]);
-                $id = $c->db->fetchValue(
-                        $q->getStatement(), $q->getBindValues());
+                $id = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
 
                 $q = $c->qf->newUpdate()
                     ->table("subtask_testcases_view")
@@ -79,8 +76,7 @@ class Subtask {
                     ->where("subtask_id = ?", $id)
                     ->where("testcase_id = ANY (ARRAY[?] :: integer[])",
                         $data["testcaseids"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != count($data["testcaseids"]))
                     throw new \Exception();
 
@@ -98,8 +94,7 @@ class Subtask {
         return $e;
     }
 
-    public static function showEditPage(
-            $c, Request $request, Response $response) {
+    public static function showEditPage($c, Request $request, Response $response) {
         $problem_id = $request->getAttribute("pid");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
@@ -121,8 +116,7 @@ class Subtask {
         return $c->view->render($response, "subtask-edit.html",
                 ["subtask" => $subtask]);
     }
-    public static function editOrDelete(
-            $c, Request $request, Response $response) {
+    public static function editOrDelete($c, Request $request, Response $response) {
         if($request->getParsedBodyParam("delete") === "delete") {
             return self::delete($c, $request, $response);
         } else if($request->getParsedBodyParam("update") === "update") {
@@ -134,7 +128,7 @@ class Subtask {
             ]);
         }
     }
-    public static function edit($c, Request $request, Response $response) {
+    private static function edit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
                 return ["pid", "subtaskid"];
@@ -162,8 +156,7 @@ class Subtask {
                     "subtaskid" => $data["subtaskid"],
                 ]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
                     "pid" => $data["pid"],
                     "subtaskid" => $data["subtaskid"],
@@ -175,22 +168,20 @@ class Subtask {
                     ->cols(["score" => $data["score"]])
                     ->where("id = ?", $data["subtaskid"])
                     ->where("problem_id = ?", $data["pid"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
 
                 $q = $c->qf->newUpdate()
                     ->table("subtask_testcases_view")
-                    ->set("exists",
-                            "testcase_id = ANY (ARRAY[:tests] :: integer[])")
+                    ->set("exists", "testcase_id = ANY (ARRAY[:tests] :: integer[])")
                     ->where("subtask_id = ?", $data["subtaskid"])
                     ->bindValue("tests", $data["testcaseids"]);
                 $c->db->perform($q->getStatement(), $q->getBindValues());
             }
         })->handle($c, $request, $response);
     }
-    public static function delete($c, Request $request, Response $response) {
+    private static function delete($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
             protected function getAttributeNames() {
                 return ["pid", "subtaskid"];
@@ -206,8 +197,7 @@ class Subtask {
                 return $c->router->pathFor("subtask-list",
                         ["pid" => $data["pid"]]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
                     "pid" => $data["pid"],
                     "subtaskid" => $data["subtaskid"],
@@ -218,8 +208,7 @@ class Subtask {
                     ->from("subtasks")
                     ->where("problem_id = ?", $data["pid"])
                     ->where("id = ?", $data["subtaskid"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
             }

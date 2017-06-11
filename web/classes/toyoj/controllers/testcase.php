@@ -28,8 +28,7 @@ class TestCase {
                 ["testcase" => $testcase]);
     }
 
-    public static function showCreatePage(
-            $c, Request $request, Response $response) {
+    public static function showCreatePage($c, Request $request, Response $response) {
         $problem_id = $request->getAttribute("pid");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
@@ -72,8 +71,7 @@ class TestCase {
                 return $c->router->pathFor("test",
                         ["pid" => $data["pid"], "testid" => $result]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("test-new",
                         ["pid" => $data["pid"]]);
             }
@@ -89,8 +87,7 @@ class TestCase {
                         "output" => $data["output"],
                     ])
                     ->returning(["id"]);
-                $id = $c->db->fetchValue(
-                        $q->getStatement(), $q->getBindValues());
+                $id = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
 
                 $q = $c->qf->newUpdate()
                     ->table("subtask_testcases_view")
@@ -98,8 +95,7 @@ class TestCase {
                     ->where("testcase_id = ?", $id)
                     ->where("subtask_id = ANY (ARRAY[?] :: integer[])",
                         $data["subtaskids"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != count($data["subtaskids"]))
                     throw new \Exception();
 
@@ -122,8 +118,7 @@ class TestCase {
         return $e;
     }
 
-    public static function showEditPage(
-            $c, Request $request, Response $response) {
+    public static function showEditPage($c, Request $request, Response $response) {
         $problem_id = $request->getAttribute("pid");
         $problem = Problem::getBaseProblem($c, $problem_id);
         if(!$problem)
@@ -145,8 +140,7 @@ class TestCase {
         return $c->view->render($response, "testcase-edit.html",
                 ["testcase" => $testcase]);
     }
-    public static function editOrDelete(
-            $c, Request $request, Response $response) {
+    public static function editOrDelete($c, Request $request, Response $response) {
         if($request->getParsedBodyParam("delete") === "delete") {
             return self::delete($c, $request, $response);
         } else if($request->getParsedBodyParam("update") === "update") {
@@ -210,8 +204,7 @@ class TestCase {
                     ])
                     ->where("id = ?", $data["testid"])
                     ->where("problem_id = ?", $data["pid"]);
-                $cnt = $c->db->fetchAffected(
-                        $q->getStatement(), $q->getBindValues());
+                $cnt = $c->db->fetchAffected($q->getStatement(), $q->getBindValues());
                 if($cnt != 1)
                     throw new \Exception();
 
@@ -242,8 +235,7 @@ class TestCase {
                 return $c->router->pathFor("subtask-list",
                         ["pid" => $data["pid"]]);
             }
-            protected function getErrorLocation(
-                    $c, array $data, \Exception $e) {
+            protected function getErrorLocation($c, array $data, \Exception $e) {
                 return $c->router->pathFor("subtask-edit", [
                     "pid" => $data["pid"],
                     "subtaskid" => $data["subtaskid"],
