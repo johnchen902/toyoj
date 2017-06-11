@@ -7,8 +7,8 @@
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('problem', { 'pid': problem.pid }) }}">View Problem</a>
-    <a href="{{ path_for('edit-problem', { 'pid': problem.pid }) }}">Edit Problem</a>
+    <a href="{{ path_for('problem', { 'pid': problem.id }) }}">View Problem</a>
+    <a href="{{ path_for('problem-edit', { 'pid': problem.id }) }}">Edit Problem</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -25,7 +25,7 @@
     </div>
     <div>
       <label>
-        Checker: <input type="text" name="checker" value="exact">
+        Checker: <input type="text" name="checker" value="exact" readonly>
       </label>
     </div>
     <div>
@@ -40,6 +40,13 @@
         <textarea name="output" cols="80" rows="22" wrap="off"></textarea>
       </label>
     </div>
+{% for subtask in problem.subtasks %}
+    <div>
+      <label>
+        <input type="checkbox" name="subtaskids[]" value="{{ subtask.id }}"> Subtask #{{ subtask.id }}
+      </label>
+    </div>
+{% endfor %}
     <div>
       <input type="submit" value="Save">
     </div>

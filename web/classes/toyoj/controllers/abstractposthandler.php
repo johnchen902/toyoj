@@ -79,7 +79,7 @@ abstract class AbstractPostHandler {
         $errors = $this->verifyData($data);
         if($errors) {
             if(is_array($errors))
-                $errors = join(" ", $errors);
+                $errors = join("\n", $errors);
             throw new \Exception($errors);
         }
 

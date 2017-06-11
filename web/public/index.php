@@ -125,150 +125,25 @@ $app->post("/problems/{pid:[0-9]+}/subtasks/{subtaskid:[0-9]+}/edit", function (
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    return redirect($response, 302, $this->router->pathFor("problem", ["pid" => $pid]) . "#test-cases");
+    return \Toyoj\Controllers\TestCase::showAll($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $problem = $this->db->prepare("SELECT pid, title, manager FROM problems WHERE pid = :pid");
-    $problem->execute(array(":pid" => $pid));
-    $problem = $problem->fetch();
-    if(!$problem) {
-        return ($this->errorview)($response, 404, "No Such Problem");
-    }
-    if(!$this->permissions->checkNewTestCase($pid)) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-    return $this->view->render($response, "testcase-new.html",
-            array("problem" => $problem));
+    return \Toyoj\Controllers\TestCase::showCreatePage($this, $request, $response);
 })->setName("test-new");
 $app->post("/problems/{pid:[0-9]+}/tests/new", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $login = $this->session["login"];
-    $time_limit = (int) $request->getParsedBodyParam("time_limit");
-    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
-    $checker = $request->getParsedBodyParam("checker");
-    $input = $request->getParsedBodyParam("input");
-    $output = $request->getParsedBodyParam("output");
-
-    $input = str_replace("\r\n", "\n", $input);
-    $output = str_replace("\r\n", "\n", $output);
-
-    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkNewTestCase($pid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to add new test case for this problem.";
-        return redirect($response, 303, $this->router->pathFor("problem", array("pid" => $pid)));
-    }
-    $stmt = $this->db->prepare("INSERT INTO testcases (pid, time_limit, memory_limit, checker, input, output) VALUES (:pid, :time_limit, :memory_limit, :checker, :input, :output) RETURNING testcaseid");
-    $stmt->execute(array(
-        ":pid" => $pid,
-        ":time_limit" => $time_limit,
-        ":memory_limit" => $memory_limit,
-        ":checker" => $checker,
-        ":input" => $input,
-        ":output" => $output,
-    ));
-    $testid = $stmt->fetch();
-    $this->db->exec("COMMIT");
-
-    if(!$testid) {
-        $this->messages[] = "Add new test case failed for unknown reason";
-        return redirect($response, 303, $this->router->pathFor("new-test", array("pid" => $pid)));
-    }
-
-    $testid = $testid["testcaseid"];
-    $this->messages[] = "Test case added.";
-    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
+    return \Toyoj\Controllers\TestCase::create($this, $request, $response);
 });
 
 $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testcaseid = $args["testid"];
-
-    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
-    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
-    $testcase = $testcase->fetch();
-    if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
-    }
-    $testcase["canedit"] = $this->permissions->checkEditTestCase($testcaseid);
-
-    return $this->view->render($response, "testcase.html",
-            array("testcase" => $testcase));
+    return \Toyoj\Controllers\TestCase::show($this, $request, $response);
 })->setName("test");
 
 $app->get("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testcaseid = $args["testid"];
-
-    $testcase = $this->db->prepare("SELECT p.pid, p.title, p.manager, t.testcaseid, t.time_limit, t.memory_limit, t.checker, t.input, t.output FROM problems p, testcases t WHERE p.pid = :pid AND p.pid = t.pid AND t.testcaseid = :testcaseid");
-    $testcase->execute(array(":pid" => $pid, ":testcaseid" => $testcaseid));
-    $testcase = $testcase->fetch();
-    if(!$testcase) {
-        return ($this->errorview)($response, 404, "No Such Problem Or Test Case");
-    }
-    if(!$this->permissions->checkEditTestCase($testcaseid)) {
-        return ($this->errorview)($response, 403, "Forbidden");
-    }
-
-    return $this->view->render($response, "testcase-edit.html",
-        array("testcase" => $testcase));
+    return \Toyoj\Controllers\TestCase::showEditPage($this, $request, $response);
 })->setName("test-edit");
 $app->post("/problems/{pid:[0-9]+}/tests/{testid:[0-9]+}/edit", function (Request $request, Response $response, array $args) {
-    $pid = $args["pid"];
-    $testid = $args["testid"];
-    $login = $this->session["login"];
-    $time_limit = (int) $request->getParsedBodyParam("time_limit");
-    $memory_limit = (int) $request->getParsedBodyParam("memory_limit");
-    $checker = $request->getParsedBodyParam("checker");
-    $input = $request->getParsedBodyParam("input");
-    $output = $request->getParsedBodyParam("output");
-
-    $input = str_replace("\r\n", "\n", $input);
-    $output = str_replace("\r\n", "\n", $output);
-
-    $errors = $this->forms->validateTestCase($time_limit, $memory_limit, $checker, $input, $output);
-    if($errors) {
-        foreach($errors as $e)
-            $this->messages[] = $e;
-        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
-    }
-
-    $this->db->exec("BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-    if(!$this->permissions->checkEditTestCase($testid)) {
-        $this->db->exec("ROLLBACK");
-        $this->messages[] = "You are not allowed to edit this test case.";
-        return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
-    }
-    $stmt = $this->db->prepare("UPDATE testcases SET (time_limit, memory_limit, checker, input, output) = (:time_limit, :memory_limit, :checker, :input, :output) WHERE testcaseid = :testcaseid AND pid = :pid");
-    $stmt->execute(array(
-        ":time_limit" => $time_limit,
-        ":memory_limit" => $memory_limit,
-        ":checker" => $checker,
-        ":input" => $input,
-        ":output" => $output,
-        ":pid" => $pid,
-        ":testcaseid" => $testid,
-    ));
-    $editSuccess = $stmt->rowCount() > 0;
-    $this->db->exec("COMMIT");
-
-    if(!$editSuccess) {
-        $this->messages[] = "Edit failed for unknown reason.";
-        return redirect($response, 303, $this->router->pathFor("edit-test", array("pid" => $pid, "testid" => $testid)));
-    }
-
-    $this->messages[] = "Test case edited.";
-    return redirect($response, 303, $this->router->pathFor("test", array("pid" => $pid, "testid" => $testid)));
+    return \Toyoj\Controllers\TestCase::edit($this, $request, $response);
 });
 
 $app->get("/signup", function (Request $request, Response $response) {

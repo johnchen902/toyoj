@@ -1,12 +1,12 @@
 {# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
 
-{% block title %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }} - {{ parent() }}{% endblock %}
-{% block h2 %}Edit Test Case #{{ testcase.testcaseid }} of {{ testcase.title }}{% endblock %}
+{% block title %}Edit Test Case #{{ testcase.id }} of {{ testcase.problem.title }} - {{ parent() }}{% endblock %}
+{% block h2 %}Edit Test Case #{{ testcase.id }} of {{ testcase.problem.title }}{% endblock %}
 
 {% block nav2 %}
 {{ parent() }}{##}
-    <a href="{{ path_for('test', { 'pid': testcase.pid, 'testid': testcase.testcaseid }) }}">View Test Case</a>
+    <a href="{{ path_for('test', { 'pid': testcase.problem_id, 'testid': testcase.id }) }}">View Test Case</a>
 {% endblock nav2 %}
 
 {% block content %}
@@ -23,7 +23,7 @@
     </div>
     <div>
       <label>
-        Checker: <input type="text" name="checker" value="{{ testcase.checker }}">
+        Checker: <input type="text" name="checker" value="{{ testcase.checker_name }}" readonly>
       </label>
     </div>
     <div>
@@ -38,8 +38,16 @@
         <textarea name="output" cols="80" rows="22" wrap="off">{{ testcase.output }}</textarea>
       </label>
     </div>
+{% for rel in testcase.subtask_exists %}
     <div>
-      <input type="submit" value="Save">
+      <label>
+        <input type="checkbox" name="subtaskids[]" value="{{ rel.subtask_id }}"{% if rel.exists %} checked{% endif %}> Subtask #{{ rel.subtask_id }}
+      </label>
+    </div>
+{% endfor %}
+    <div>
+      <button type="submit" name="update" value="update">Save</button>
+      <button type="submit" name="delete" value="delete">Delete</button>
     </div>
   </fieldset></form>
 {% endblock content %}
