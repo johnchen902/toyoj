@@ -15,7 +15,8 @@ h1 {
     margin: 0;
     float: left;
     height: 3.3rem;
-    padding-left: 1em;
+    padding-left: 2rem;
+    margin-bottom: 2.0rem;
 }
 a {
     color: #16a085;
@@ -26,13 +27,14 @@ a:hover {
     transition: 0.25s;
 }
 footer {
-    margin-top: 1em;
+    margin-top: 1rem;
 }
 .nav1 {
     color: white;
     background-color: #003365;
     margin: 0;
-    padding-left: 1.2em;
+    padding-left: 1.2rem;
+    margin-bottom: 2.0rem;
 }
 .nav1 a {
     display: inline-block;
@@ -60,4 +62,27 @@ tr:nth-child(odd) {
 td, th {
     border: none;
     text-align: left;
+}
+.message {
+    border: 1px solid black;
+    padding: 1rem;
+    border-radius: 0.3rem;
+}
+.success-message {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+.error-message {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+.close-button {
+    float: right;
+    color: black;
+    opacity: 0.2;
+}
+.close-button:hover {
+    opacity: 0.5;
 }
