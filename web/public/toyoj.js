@@ -59,6 +59,7 @@
             cancelButton.click(() => closeDialog(dialog));
             answerField.bind("propertychange change click keyup input paste",
                     () => confirmButton.prop("disabled", answerField.val() != answerField.data("answer")));
+            $(this).prop("disabled", false);
         });
     }
 })();
