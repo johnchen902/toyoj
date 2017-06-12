@@ -49,6 +49,24 @@ textarea {
     width: 100%;
     box-sizing: border-box;
 }
+button {
+    border: none;
+    border-radius: 0.3rem;
+    font-size: 1em;
+    color: white;
+    background-color: #2ecc71;
+    padding: 0.5em 0.8em;
+    cursor: pointer;
+    transition: 0.25s linear;
+}
+button:hover:enabled {
+    background-color: #58d68d;
+    transition: 0.25s linear;
+}
+button:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
 .nav1 {
     color: white;
     background-color: #003365;
@@ -86,6 +104,7 @@ textarea {
     float: right;
     color: black;
     opacity: 0.2;
+    cursor: pointer;
 }
 .close-button:hover {
     opacity: 0.5;
@@ -113,4 +132,10 @@ textarea {
 }
 .nav2 a:nth-child(4n+4) {
     background-color: #cacfd2;
+}
+button.dangerous-button, button.confirm-button {
+    background-color: #e74c3c;
+}
+button.dangerous-button:hover:enabled, button.confirm-button:hover:enabled {
+    background-color: #ec7063;
 }
