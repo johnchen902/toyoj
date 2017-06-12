@@ -5,8 +5,8 @@
 {% block h2 %}Log Out{% endblock %}
 
 {% block content %}
-{% if not login %}
-{% include "components/message.html" with {"message" : "You are not logged in."} %}
+{% if not container.login.loggedIn %}
+{% include "components/message.html" with {"message" : {"message" : "You are not logged in.", "classes" : ["error-message"]}} %}
 {% else %}
   <form method="post">
     <div>

@@ -5,8 +5,8 @@
 {% block h2 %}Log In{% endblock %}
 
 {% block content %}
-{% if login %}
-{% include "components/message.html" with {"message" : "You are already logged in."} %}
+{% if container.login.loggedIn %}
+{% include "components/message.html" with {"message" : {"message" : "You are already logged in.", "classes" : ["error-message"]}} %}
 {% else %}
   <form method="post">
     <div>

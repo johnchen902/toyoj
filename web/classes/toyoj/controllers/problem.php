@@ -55,7 +55,7 @@ class Problem {
                     ->into("submissions")
                     ->cols([
                         "problem_id" => $data["problem_id"],
-                        "submitter_id" => $c->session["login"],
+                        "submitter_id" => $c->login->getUserId(),
                         "language_name" => $data["language"],
                         "code" => $data["code"],
                     ])
@@ -65,14 +65,13 @@ class Problem {
         })->handle($c, $request, $response);
     }
     public static function checkSubmit($c, $problem_id) {
-        $login = $c->session["login"];
-        if(!$login)
+        if(!$c->login->isLoggedIn())
             return false;
         $q = $c->qf->newSelect()
             ->cols(["1"])
             ->from("problems")
             ->where("id = ?", $problem_id)
-            ->where("ready OR (manager_id = ?)", $login);
+            ->where("ready OR (manager_id = ?)", $c->login->getUserId());
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
     }
@@ -117,7 +116,7 @@ class Problem {
                     ->cols([
                         "title" => $data["title"],
                         "statement" => $data["statement"],
-                        "manager_id" => $c->session["login"],
+                        "manager_id" => $c->login->getUserId(),
                         "ready" => false,
                     ])
                     ->returning(["id"]);
@@ -126,13 +125,12 @@ class Problem {
         })->handle($c, $request, $response);
     }
     public static function checkCreate($c) {
-        $login = $c->session["login"];
-        if(!$login)
+        if(!$c->login->isLoggedIn())
             return false;
         $q = $c->qf->newSelect()
             ->cols(["1"])
             ->from("user_permissions")
-            ->where("user_id = ?", $login)
+            ->where("user_id = ?", $c->login->getUserId())
             ->where("permission_name = 'newproblem'");
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
@@ -169,10 +167,10 @@ class Problem {
                 return "Problem Edited";
             }
             protected function getSuccessLocation($c, array $data, $result) {
-                return $c->router->pathFor("problem", ["problem_id" => $result]);
+                return $c->router->pathFor("problem", $data);
             }
             protected function getErrorLocation($c, array $data, \Exception $e) {
-                return $c->router->pathFor("problem-edit", ["problem_id" => $result]);
+                return $c->router->pathFor("problem-edit", $data);
             }
             protected function transaction($c, array $data) {
                 $q = $c->qf->newUpdate()
@@ -182,7 +180,7 @@ class Problem {
                         "statement" => $data["statement"],
                         "ready" => $data["ready"],
                     ])
-                    ->where("id = ?", $problem_id);
+                    ->where("id = ?", $data["problem_id"]);
                 if($c->db->fetchAffected(
                         $q->getStatement(), $q->getBindValues()) != 1)
                     throw new \Exception();
@@ -190,14 +188,13 @@ class Problem {
         })->handle($c, $request, $response);
     }
     public static function checkEdit($c, $problem_id) {
-        $login = $c->session["login"];
-        if(!$login)
+        if(!$c->login->isLoggedIn())
             return false;
         $q = $c->qf->newSelect()
             ->cols(["1"])
             ->from("problems")
             ->where("id = ?", $problem_id)
-            ->where("manager_id = ?", $login);
+            ->where("manager_id = ?", $c->login->getUserId());
         $ok = $c->db->fetchValue($q->getStatement(), $q->getBindValues());
         return boolval($ok);
     }

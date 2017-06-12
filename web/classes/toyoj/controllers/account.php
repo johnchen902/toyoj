@@ -7,8 +7,8 @@ class Account {
         return $c->view->render($response, "login.html");
     }
     public static function login($c, Request $request, Response $response) {
-        if($c->session["login"] ?? false) {
-            $c->messages[] = "Already logged in";
+        if($c->login->isLoggedIn()) {
+            Utilities::errorMessage($c, "Already logged in");
             return Utilities::redirectRoute($response, 303, $c, "index");
         }
 
@@ -23,27 +23,25 @@ class Account {
         $user = $c->db->fetchOne($q->getStatement(), $q->getBindValues());
 
         if(!$user) {
-            $c->messages[] = "No such user.";
+            Utilities::errorMessage($c, "No such user.");
             return Utilities::redirectRoute($response, 303, $c, "login");
         }
         if(!password_verify($password, $user["password_hash"])) {
-            $c->messages[] = "Incorrect username or password.";
+            Utilities::errorMessage($c, "Incorrect username or password.");
             return Utilities::redirectRoute($response, 303, $c, "login");
         }
 
-        $c->session["login"] = $user["id"];
-        $c->messages[] = "Logged in successfully";
+        $c->login->login($user["id"]);
+        Utilities::successMessage($c, "Logged in successfully");
         return Utilities::redirectRoute($response, 303, $c, "index");
     }
     public static function showLogoutPage($c, Request $request, Response $response) {
         return $c->view->render($response, "logout.html");
     }
     public static function logout($c, Request $request, Response $response) {
-        if(!isset($c->session["login"])) {
-            // don't bother handling this
-        }
-        unset($c->session["login"]);
-        $c->messages[] = "Logged out successfully";
+        if($c->login->isLoggedIn())
+            $c->login->logout();
+        Utilities::successMessage($c, "Logged out successfully");
         return Utilities::redirectRoute($response, 303, $c, "login");
     }
     public static function showSignupPage($c, Request $request, Response $response) {

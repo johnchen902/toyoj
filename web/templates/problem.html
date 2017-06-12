@@ -59,10 +59,10 @@
     </tr>
 {% endfor %}
   </table>
-{% if login %}
+{% if container.login.loggedIn %}
   <h3>Submission Area</h3>
 {% if not problem.ready %}
-{% include "components/message.html" with {"message" : "This problem is not ready for submission."} %}
+{% include "components/message.html" with {"message" : {"message": "This problem is not ready for submission.", "classes" : ["error-message"]}} %}
 {% endif %}
 {% if problem.cansubmit %}
   <form method="post">

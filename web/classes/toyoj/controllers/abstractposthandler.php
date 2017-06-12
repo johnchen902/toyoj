@@ -66,12 +66,12 @@ abstract class AbstractPostHandler {
         } catch(\Exception $e) {
             $errmsg = $e->getMessage() ?: $this->getUnknownErrorMessage();
             if($errmsg)
-                $c->messages[] = $errmsg;
+                Utilities::errorMessage($c, $errmsg);
             return $this->getErrorLocation($c, $data, $e);
         }
         $msg = $this->getSuccessMessage();
         if($msg)
-            $c->messages[] = $msg;
+            Utilities::successMessage($c, $msg);
         return $this->getSuccessLocation($c, $data, $result);
     }
 

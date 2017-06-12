@@ -16,8 +16,8 @@
     <a href="{{ path_for('problem-list') }}">Problems</a>
     <a href="{{ path_for('submission-list') }}">Submissions</a>
     <a href="{{ path_for('user-list') }}">Users</a>
-{% if login %}
-    <a href="{{ path_for('user', { 'user_id': login }) }}">Profile</a>
+{% if container.login.loggedIn %}
+    <a href="{{ path_for('user', { 'user_id': container.login.userId }) }}">Profile</a>
     <a href="{{ path_for('logout') }}">Log out</a>
 {% else %}
     <a href="{{ path_for('login') }}">Log in</a>
@@ -25,7 +25,7 @@
 {% endif %}
 {% endblock nav %}
   </nav>
-{% for message in messages %}
+{% for message in container.messages.listAllOnce %}
 {% include "components/message.html" %}
 {% endfor %}
   <h2>{% block h2 %}Please override <code>block h2</code>{% endblock %}</h2>
