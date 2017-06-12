@@ -15,7 +15,7 @@
 </head>
 <body>
   <h1>Toy Online Judge</h1>
-  <nav>
+  <nav class="nav1">
 {% block nav %}
     <a href="{{ path_for('index') }}">Index</a>
     <a href="{{ path_for('problem-list') }}">Problems</a>
@@ -35,7 +35,7 @@
 {% include "components/message.html" %}
 {% endfor %}
   <h2>{% block h2 %}Please override <code>block h2</code>{% endblock %}</h2>
-  <nav>
+  <nav class="nav2">
 {% block nav2 %}
 {% endblock nav2 %}
   </nav>
