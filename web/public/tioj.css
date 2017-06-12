@@ -5,6 +5,10 @@ body {
     font-size: 18px;
     color: #34495e;
 }
+body > * {
+    margin-left: 2.5rem;
+    margin-right: 2.5rem;
+}
 h1 {
     color: white;
     background-color: #003365;
@@ -13,21 +17,47 @@ h1 {
     height: 3.3rem;
     padding-left: 1em;
 }
+a {
+    color: #16a085;
+    transition: 0.25s;
+}
+a:hover {
+    color: #1abc9c;
+    transition: 0.25s;
+}
+footer {
+    margin-top: 1em;
+}
 .nav1 {
     color: white;
     background-color: #003365;
+    margin: 0;
+    padding-left: 1.2em;
 }
-.nav1 a, .nav1 a:visited {
+.nav1 a {
     display: inline-block;
     color: white;
     text-decoration: none;
     padding: 1rem 1rem 1.2rem;
     height: 1.1rem;
-    transition: 0.25s;
     font-size: 16px;
     font-weight: 700;
 }
 .nav1 a:hover {
     color: #1abc9c;
-    transition: 0.25s;
+}
+table {
+    border-collapse: collapse;
+}
+body > table {
+    width: 90%;
+}
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+tr:nth-child(odd) {
+}
+td, th {
+    border: none;
+    text-align: left;
 }
