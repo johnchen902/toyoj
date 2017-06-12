@@ -16,14 +16,14 @@ $app = new \Slim\App(["settings" => $config]);
 $container = $app->getContainer();
 $container["view"] = function ($container) {
     $view = new \Slim\Views\Twig("../templates", [
+        'strict_variables' => true,
     ]);
     $basePath = rtrim(str_ireplace("index.php", "", $container["request"]->getUri()->getBasePath()), "/");
     $view->addExtension(new Slim\Views\TwigExtension($container["router"], $basePath));
     $view->getEnvironment()->addFilter(new Twig_Filter('markdown', function($string) {
         return Parsedown::instance()->setMarkupEscaped(true)->text($string);
     }, array("is_safe" => array("html"))));
-    $view["login"] = $container->session["login"] ?? 0;
-    $view["messages"] = $container->messages;
+    $view["container"] = $container;
     return $view;
 };
 $container["db"] = function ($container) {
@@ -44,13 +44,14 @@ $container["notFoundHandler"] = function ($container) {
     };
 };
 $container["session"] = function ($container) {
-    return new \Toyoj\SessionWrapper();
+    $session_factory = new \Aura\Session\SessionFactory;
+    return $session_factory->newInstance($_COOKIE);
+};
+$container["login"] = function ($container) {
+    return new \Toyoj\Login($container);
 };
 $container["messages"] = function ($container) {
-    return new \Toyoj\MessageWrapper($container->session);
-};
-$container["forms"] = function ($container) {
-    return new \Toyoj\FormValidator();
+    return new \Toyoj\Messages($container);
 };
 
 $app->get("/", function (Request $request, Response $response) {

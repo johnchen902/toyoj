@@ -146,7 +146,7 @@ class TestCase {
         } else if($request->getParsedBodyParam("update") === "update") {
             return self::edit($c, $request, $response);
         } else {
-            $c->messages[] = "WTF neither delete nor update.";
+            Utilities::errorMessage($c, "WTF neither delete nor update.");
             return Utilities::redirectRoute($response, 303, "testcase-edit", [
                 "problem_id" => $request->getAttribute("problem_id"),
                 "subtask_id" => $request->getAttribute("subtask_id"),

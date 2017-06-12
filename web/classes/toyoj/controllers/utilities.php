@@ -40,5 +40,13 @@ class Utilities {
         if($len > $maxl)
             $e[] = "$name is longer than $maxl characters.";
     }
+    public static function errorMessage($c, $message) {
+        $c->messages->addMessage(new \Toyoj\Message($message,
+                ['error-message', 'dismissible-message']));
+    }
+    public static function successMessage($c, $message) {
+        $c->messages->addMessage(new \Toyoj\Message($message,
+                ['success-message', 'dismissible-message']));
+    }
 }
 ?>
