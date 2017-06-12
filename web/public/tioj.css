@@ -1,0 +1,141 @@
+body {
+    background-color: #E6EBF0;
+    margin: 0;
+    font-family: "Lato", Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    color: #34495e;
+}
+body > * {
+    margin-left: 2.5rem;
+    margin-right: 2.5rem;
+}
+h1 {
+    color: white;
+    background-color: #003365;
+    margin: 0;
+    float: left;
+    height: 3.3rem;
+    padding-left: 2rem;
+    margin-bottom: 2.0rem;
+}
+a {
+    color: #16a085;
+    transition: 0.25s;
+    text-decoration: none;
+}
+a:hover {
+    color: #1abc9c;
+    transition: 0.25s;
+}
+footer {
+    margin-top: 1rem;
+}
+table {
+    border-collapse: collapse;
+}
+body > table {
+    width: 90%;
+}
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+tr:nth-child(odd) {
+}
+td, th {
+    border: none;
+    text-align: left;
+}
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+button {
+    border: none;
+    border-radius: 0.3rem;
+    font-size: 1em;
+    color: white;
+    background-color: #2ecc71;
+    padding: 0.5em 0.8em;
+    cursor: pointer;
+    transition: 0.25s linear;
+}
+button:hover:enabled {
+    background-color: #58d68d;
+    transition: 0.25s linear;
+}
+button:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+.nav1 {
+    color: white;
+    background-color: #003365;
+    margin: 0;
+    padding-left: 1.2rem;
+    margin-bottom: 2.0rem;
+}
+.nav1 a {
+    display: inline-block;
+    color: white;
+    padding: 1rem 1rem 1.2rem;
+    height: 1.1rem;
+    font-size: 16px;
+    font-weight: 700;
+}
+.nav1 a:hover {
+    color: #1abc9c;
+}
+.message {
+    border: 1px solid black;
+    padding: 1rem;
+    border-radius: 0.3rem;
+}
+.success-message {
+    color: #3c763d;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+}
+.error-message {
+    color: #a94442;
+    background-color: #f2dede;
+    border-color: #ebccd1;
+}
+.close-button {
+    float: right;
+    color: black;
+    opacity: 0.2;
+    cursor: pointer;
+}
+.close-button:hover {
+    opacity: 0.5;
+}
+.nav2 {
+    margin-bottom: 1em;
+}
+.nav2 a {
+    display: inline-block;
+    color: white;
+    padding: 0.2rem 1rem;
+    min-width: 9.5rem;
+    margin-right: 1rem;
+    border-radius: 0.3rem;
+    text-align: center;
+}
+.nav2 a:nth-child(4n+1) {
+    background-color: #2ecc71;
+}
+.nav2 a:nth-child(4n+2) {
+    background-color: #5dade2;
+}
+.nav2 a:nth-child(4n+3) {
+    background-color: #4e5b76;
+}
+.nav2 a:nth-child(4n+4) {
+    background-color: #cacfd2;
+}
+button.dangerous-button, button.confirm-button {
+    background-color: #e74c3c;
+}
+button.dangerous-button:hover:enabled, button.confirm-button:hover:enabled {
+    background-color: #ec7063;
+}

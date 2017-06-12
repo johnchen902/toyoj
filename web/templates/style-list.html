@@ -1,0 +1,18 @@
+{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% block title %}Styles - {{ parent() }}{% endblock %}
+
+{% block h2 %}Styles{% endblock %}
+
+{% block content %}
+  <form method="POST" class="styleform">
+{% for stylesheet in container.stylesheets.listAll %}
+    <div>
+      <label>
+        <input type="radio" name="title" value="{{ stylesheet.title }}"{% if stylesheet.preferred %} checked{% endif %}> {{ stylesheet.title }}
+      </label>
+    </div>
+{% endfor %}
+    <button type="submit">Save</button>
+  </form>
+{% endblock content %}

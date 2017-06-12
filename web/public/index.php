@@ -53,10 +53,23 @@ $container["login"] = function ($container) {
 $container["messages"] = function ($container) {
     return new \Toyoj\Messages($container);
 };
+$container["stylesheets"] = function ($container) {
+    return new \Toyoj\StyleSheets($container, [
+        "Default Style" => "/default.css",
+        "TIOJ INFOR Online Judge" => "/tioj.css",
+    ]);
+};
 
 $app->get("/", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Index::get($this, $request, $response);
 })->setName("index");
+
+$app->get("/styles/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Style::showAll($this, $request, $response);
+})->setName("style-list");
+$app->post("/styles/", function (Request $request, Response $response) {
+    return \Toyoj\Controllers\Style::setStyle($this, $request, $response);
+});
 
 $app->get("/login", function (Request $request, Response $response) {
     return \Toyoj\Controllers\Account::showLoginPage($this, $request, $response);
