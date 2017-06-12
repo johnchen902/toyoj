@@ -26,7 +26,20 @@
 {% endfor %}
     <div>
       <button type="submit" name="update" value="update">Save</button>
-      <button type="submit" name="delete" value="delete">Delete</button>
+      <button type="button" class="dangerous-button" data-dialog-id="dialog1">Delete</button>
+      <dialog id="dialog1">
+        <h3>Are you ABSOLUTELY sure?</h3>
+        <p>
+          This action <strong>CANNOT</strong> be undone.
+          This will delete subtask #{{ subtask.id }} permanently.
+        </p>
+        <p>
+          Please type in the id of the subtask to confirm.
+        </p>
+        <input type="text" class="answer-field" data-answer="{{ subtask.id }}">
+        <button type="submit" name="delete" value="delete" class="confirm-button" disabled>Delete</button>
+        <button type="button" class="cancel-button">Cancel</button>
+      </dialog>
     </div>
   </form>
 {% endblock content %}
