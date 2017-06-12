@@ -5,7 +5,9 @@
 {% block head %}
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Toy Online Judge{% endblock %}</title>
-  <link rel="stylesheet" href="/default.css" title="Default Style">
+{% for stylesheet in container.stylesheets.listAll %}
+  <link rel="{% if not stylesheet.preferred %}alternate {% endif %}stylesheet" href="{{ stylesheet.path }}" title="{{ stylesheet.title }}">
+{% endfor %}
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
   <script async id="script-jquery" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script async src="/toyoj.js"></script>
@@ -26,6 +28,7 @@
     <a href="{{ path_for('login') }}">Log in</a>
     <a href="{{ path_for('signup') }}">Sign up</a>
 {% endif %}
+    <a href="{{ path_for('style-list') }}">Styles</a>
 {% endblock nav %}
   </nav>
 {% for message in container.messages.listAllOnce %}
@@ -39,5 +42,8 @@
 {% block content %}
   Please override <code>block content</code>.
 {% endblock content %}
+  <footer>
+    The source code is available on <a href="https://github.com/johnchen902/toyoj">GitHub</a>.
+  </footer>
 </body>
 </html>
