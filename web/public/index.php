@@ -7,17 +7,17 @@ use Aura\SqlQuery\QueryFactory;
 set_include_path(get_include_path() . PATH_SEPARATOR . "../classes/");
 spl_autoload_register();
 require "../vendor/autoload.php";
+require "../config/config.php";
 
-date_default_timezone_set("Asia/Taipei");
+$config = Toyoj\getConfig();
 
-$config["displayErrorDetails"] = true;
+if(isset($config["timezone"]))
+    date_default_timezone_set($config["timezone"]);
 
 $app = new \Slim\App(["settings" => $config]);
 $container = $app->getContainer();
 $container["view"] = function ($container) {
-    $view = new \Slim\Views\Twig("../templates", [
-        'strict_variables' => true,
-    ]);
+    $view = new \Slim\Views\Twig("../templates", $container->settings["twig"]);
     $basePath = rtrim(str_ireplace("index.php", "", $container["request"]->getUri()->getBasePath()), "/");
     $view->addExtension(new Slim\Views\TwigExtension($container["router"], $basePath));
     $view->getEnvironment()->addFilter(new Twig_Filter('markdown', function($string) {
@@ -27,10 +27,10 @@ $container["view"] = function ($container) {
     return $view;
 };
 $container["db"] = function ($container) {
-    return new ExtendedPdo("pgsql:dbname=toyoj user=toyojweb");
+    return new ExtendedPdo($container->settings["dsn"]);
 };
 $container["qf"] = function ($container) {
-    return new QueryFactory("pgsql");
+    return new QueryFactory($container->settings["auraDBType"]);
 };
 $container["errorview"] = function ($container) {
     return function (Response $response, int $status, string $message) use ($container) {
@@ -54,10 +54,7 @@ $container["messages"] = function ($container) {
     return new \Toyoj\Messages($container);
 };
 $container["stylesheets"] = function ($container) {
-    return new \Toyoj\StyleSheets($container, [
-        "Default Style" => "/default.css",
-        "TIOJ INFOR Online Judge" => "/tioj.css",
-    ]);
+    return new \Toyoj\StyleSheets($container, $container->settings["stylesheets"]);
 };
 
 $app->get("/", function (Request $request, Response $response) {

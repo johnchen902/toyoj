@@ -11,7 +11,7 @@ class StyleSheets {
         $this->sheets = $sheets;
     }
     public function getPreferredTitle() {
-        $title = $this->segment->get(PREFERRED_KEY);
+        $title = $this->segment->get(self::PREFERRED_KEY);
         if(!is_null($title) && isset($this->sheets[$title]))
             return $title;
         foreach($this->sheets as $title => $path)
@@ -20,7 +20,7 @@ class StyleSheets {
     public function setPreferredTitle($title) {
         if(!is_null($title) && !isset($this->sheets[$title]))
             throw new \InvalidArgumentException("no stylesheets with such title");
-        $this->segment->set(PREFERRED_KEY, $title);
+        $this->segment->set(self::PREFERRED_KEY, $title);
     }
     public function listAll() {
         $result = [];
