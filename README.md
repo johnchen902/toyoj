@@ -23,7 +23,7 @@ This is a very normal Online Judge.
    3. Copy web/ to /srv/http/toyoj
    4. Modify /srv/http/toyoj/config/config.php if needed
    4. Include toyoj.conf in a server block of /etc/nginx/nginx.conf
-4. Setup judge back-end
-   1. Install **python** from official repository
-   2. Install **cachetools** and **asyncpg** from pypi
+4. Setup judge
+   1. Install Python usualy
+   2. Install dependency listed in judge/requirement.txt
    3. ??? (WIP)

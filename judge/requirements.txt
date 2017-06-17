@@ -1,0 +1,2 @@
+asyncpg==0.11.0
+cachetools==2.0.0

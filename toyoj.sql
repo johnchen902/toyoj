@@ -122,6 +122,7 @@ CREATE TRIGGER subtask_testcases_view_update_trigger
 CREATE VIEW results_view AS SELECT
     s.id AS submission_id,
     t.id AS testcase_id,
+    s.problem_id AS problem_id,
     r.accepted,
     r.verdict,
     r.time,
