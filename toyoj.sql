@@ -191,6 +191,29 @@ FROM submissions s
         GROUP BY k.submission_id
     ) y ON (s.id = y.submission_id);
 
+CREATE FUNCTION notify_new_judge_task() RETURNS trigger AS $$
+BEGIN
+    NOTIFY new_judge_task;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER submissions_insert_notify_new_judge_task
+    AFTER INSERT ON submissions
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER testcases_insert_notify_new_judge_task
+    AFTER INSERT ON testcases
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER results_judges_delete_notify_new_judge_task
+    AFTER DELETE OR TRUNCATE ON result_judges
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER results_delete_notify_new_judge_task
+    AFTER DELETE OR TRUNCATE ON results
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
 GRANT SELECT ON checkers TO toyojweb;
 GRANT SELECT ON languages TO toyojweb;
 GRANT SELECT, INSERT ON users TO toyojweb;

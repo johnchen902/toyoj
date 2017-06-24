@@ -20,13 +20,24 @@ class TaskFetcher:
         self._pool = pool
 
     async def fetch(self):
-        while True:
-            task = await self.fetch_nullable()
-            if task is not None:
-                return task
-            await asyncio.sleep(1)
+        async with self._pool.acquire() as conn:
+            event = asyncio.Event()
+            def listener(con_ref, pid, channel, payload):
+                event.set()
+            await conn.add_listener("new_judge_task", listener)
+            while True:
+                event.clear()
+                task = await self._fetch_nullable(conn)
+                if task is not None:
+                    return task
+                await event.wait()
+
     async def fetch_nullable(self):
-        row = await self._pool.fetchrow("""
+        async with self._pool.acquire() as conn:
+            return await self._fetch_nullable(conn)
+
+    async def _fetch_nullable(self, conn):
+        row = await conn.fetchrow("""
             INSERT INTO result_judges (problem_id, submission_id, testcase_id, judge_name)
             (SELECT problem_id, submission_id, testcase_id, $1 AS judge_name
                 FROM results_view
@@ -79,7 +90,7 @@ class TaskWriter:
                 task.accepted, task.time, task.memory, task.verdict)
 
 async def run(dsn):
-    async with asyncpg.create_pool(dsn, min_size = 1, max_size = 1) as pool:
+    async with asyncpg.create_pool(dsn, min_size = 1, max_size = 2) as pool:
         task_fetcher = TaskFetcher("test-2", pool)
         task_runner = TaskRunner(pool)
         task_writer = TaskWriter(pool)
@@ -111,7 +122,7 @@ task = asyncio.ensure_future(run(dsn))
 def terminate():
     task.cancel()
 def signal_handler(a, b):
-    terminate()
+    loop.call_soon_threadsafe(terminate)
 
 signal.signal(signal.SIGINT, signal_handler)
 
