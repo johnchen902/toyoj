@@ -4,6 +4,7 @@ import asyncpg
 import logging
 import signal
 import sys
+from collections import namedtuple
 
 class JudgeTask:
     def __init__(self, problem_id, submission_id, testcase_id):
@@ -14,6 +15,10 @@ class JudgeTask:
         self.time = None
         self.memory = None
         self.verdict = None
+
+Submission = namedtuple("Submission", ["language_name", "code"])
+TestCase = namedtuple("TestCase", ["time_limit", "memory_limit",
+        "checker_name", "input", "output"])
 
 class TaskFetcher:
     def __init__(self, judge_name, pool):
@@ -48,8 +53,19 @@ class TaskFetcher:
         """, self._judge_name)
         if row is None:
             return None
-        return JudgeTask(row["problem_id"], row["submission_id"],
+        task = JudgeTask(row["problem_id"], row["submission_id"],
                          row["testcase_id"])
+        task.submission = Submission(**await conn.fetchrow("""
+            SELECT language_name, code
+            FROM submissions
+            WHERE id = $1
+        """, task.submission_id))
+        task.testcase = TestCase(**await conn.fetchrow("""
+            SELECT time_limit, memory_limit, checker_name, input, output
+            FROM testcases
+            WHERE id = $1
+        """, task.testcase_id))
+        return task
 
     async def cancel_unfinished(self):
         await self._pool.execute("""
@@ -61,31 +77,16 @@ class TaskFetcher:
         """, self._judge_name)
 
 class TaskRunner:
-    def __init__(self, pool):
-        self._pool = pool
+    def __init__(self):
+        pass
 
     async def run(self, task):
-        submission = await self._fetch_submission(task.submission_id)
-        testcase = await self._fetch_testcase(task.testcase_id)
-        print("Running ", submission, testcase, "...")
+        print("Running ", task.submission, task.testcase, "...")
         await asyncio.sleep(1.0)
         task.accepted = False
         task.time = 0
         task.memory = 0
         task.verdict = "XX"
-
-    async def _fetch_submission(self, submission_id):
-        return await self._pool.fetchrow("""
-            SELECT language_name, code
-            FROM submissions
-            WHERE id = $1
-        """, submission_id)
-    async def _fetch_testcase(self, testcase_id):
-        return await self._pool.fetchrow("""
-            SELECT time_limit, memory_limit, checker_name, input, output
-            FROM testcases
-            WHERE id = $1
-        """, testcase_id)
 
 class TaskWriter:
     def __init__(self, pool):
@@ -102,7 +103,7 @@ class TaskWriter:
 async def run(dsn):
     async with asyncpg.create_pool(dsn, min_size = 1, max_size = 2) as pool:
         task_fetcher = TaskFetcher("test-2", pool)
-        task_runner = TaskRunner(pool)
+        task_runner = TaskRunner()
         task_writer = TaskWriter(pool)
 
         async def run_and_write(task):
