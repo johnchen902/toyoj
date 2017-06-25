@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import asyncpg
+import logging
 import signal
 import sys
 
@@ -49,6 +50,15 @@ class TaskFetcher:
             return None
         return JudgeTask(row["problem_id"], row["submission_id"],
                          row["testcase_id"])
+
+    async def cancel_unfinished(self):
+        await self._pool.execute("""
+            DELETE FROM result_judges AS x USING results_view AS y
+            WHERE x.submission_id = y.submission_id
+                AND x.testcase_id = y.testcase_id
+                AND y.judge_name = $1
+                AND y.accepted IS NULL;
+        """, self._judge_name)
 
 class TaskRunner:
     def __init__(self, pool):
@@ -99,16 +109,26 @@ async def run(dsn):
             await task_runner.run(task)
             await task_writer.write(task)
 
+        def log_exception(future):
+            if not future.cancelled():
+                exc = future.exception()
+                if exc is not None:
+                    logging.exception(exc)
+
         pending = set()
         try:
             while True:
                 task = await task_fetcher.fetch()
                 future = asyncio.ensure_future(run_and_write(task))
+                future.add_done_callback(log_exception)
                 pending.add(future)
-                _, pending_tasks = await asyncio.wait(pending, timeout = 0)
+                _, pending = await asyncio.wait(pending, timeout = 0)
         finally:
+            for p in pending:
+                p.cancel()
             if(pending):
-                await asyncio.shield(asyncio.wait(pending))
+                await asyncio.wait(pending)
+            await task_fetcher.cancel_unfinished()
 
 if len(sys.argv) != 2:
     print("Usage: ./main.py DSN", file = sys.stderr)
