@@ -79,7 +79,7 @@ out_newdir:
     return err ? -1 : 0;
 }
 
-static int init_cgroups() {
+static int init_cgroups(void) {
     FILE *f = fopen("/proc/self/cgroup", "r");
     if (!f)
         return -1;
