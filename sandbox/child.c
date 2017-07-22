@@ -62,7 +62,7 @@ out_rmdir:
 }
 
 static int touch(const char *target) {
-    int fd = open(target, O_WRONLY | O_CREAT | O_EXCL);
+    int fd = open(target, O_WRONLY | O_CREAT | O_EXCL, 0755);
     int ret = fd < 0 ? -errno : 0;
     ON_ERROR(ret, "open", return ret);
 
