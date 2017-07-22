@@ -1,7 +1,16 @@
-CFLAGS += -std=gnu11 -Wall -Wextra -Wshadow -D_GNU_SOURCE
+CFLAGS += -std=gnu11 -D_GNU_SOURCE
+EXE = sandbox
 OBJ = sandbox.o child.o child-execute.o grandchild.o
 
-sandbox: $(OBJ)
+.PHONY: debug
+debug: CFLAGS += -Wall -Wextra -g -Og
+debug: $(EXE)
+
+# Use "env CFLAGS=... make release" to change release flag
+.PHONY: release
+release: $(EXE)
+
+$(EXE): $(OBJ)
 
 sandbox.o: child.h
 child.o: child.h child-execute.h
@@ -10,4 +19,4 @@ grandchild.o: grandchild.h
 
 .PHONY: clean
 clean:
-	$(RM) sandbox $(OBJ)
+	$(RM) $(EXE) $(OBJ)
