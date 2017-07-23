@@ -424,6 +424,8 @@ static void print_attribute(const char *path, const char *attr_name) {
         char buf[BUFSIZ];
         ssize_t sz = read(fd, buf, sizeof(buf) - 1);
         if (sz >= 0) {
+            if (sz && buf[sz - 1] == '\n')
+                sz--;
             buf[sz] = '\0';
             for (char *c = buf; *c; c++)
                 if (*c == '\n')

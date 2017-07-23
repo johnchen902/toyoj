@@ -141,8 +141,8 @@ static int populate_root(void) {
     DO_ACTION_ERRNO(mkdir("usr", 0755));
     DO_ACTION_ERRNO(mount("/usr", "usr", NULL, MS_BIND, NULL));
 
-    DO_ACTION_ERRNO(mkdir("tmp", 0755));
-    DO_ACTION_ERRNO(mount("tmpfs", "tmp", "tmpfs", MS_NOSUID | MS_NODEV, "mode=755,size=1g"));
+    DO_ACTION_ERRNO(mkdir("tmp", 01777));
+    DO_ACTION_ERRNO(mount("tmpfs", "tmp", "tmpfs", MS_NOSUID | MS_NODEV, "size=1g"));
 
     return ret;
 #undef DO_ACTION_ERRNO
