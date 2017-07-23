@@ -42,7 +42,7 @@ static void open_dup2(const char *filename, int flags, int newfd) {
     }
 }
 
-static void wait_for_parent_trigger() {
+static void wait_for_parent_trigger(void) {
     char buf[1];
     ssize_t size = read(saved_stdin_fd, buf, 1);
     if (size < 0)

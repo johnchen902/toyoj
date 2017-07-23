@@ -172,7 +172,7 @@ static int setup_fs(const struct child_options *child_options) {
 
 static int do_read_command(char *filename) {
     // command: read FILENAME
-    // stdout: [BYTES DATA]*ok|error\n
+    // stdout: [BYTES\nDATA]*ok|error\n
 
     if (!filename)
         return -EINVAL;
@@ -184,7 +184,7 @@ static int do_read_command(char *filename) {
     char buf[BUFSIZ];
     ssize_t size;
     while ((size = read(fd, buf, sizeof(buf))) > 0) {
-        printf("%zd ", size);
+        printf("%zd\n", size);
         fwrite(buf, size, 1, stdout);
     }
 

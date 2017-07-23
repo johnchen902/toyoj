@@ -3,7 +3,7 @@ EXE = sandbox
 OBJ = sandbox.o child.o child-execute.o grandchild.o
 
 .PHONY: debug
-debug: CFLAGS += -Wall -Wextra -g -Og
+debug: CFLAGS += -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -g -Og
 debug: $(EXE)
 
 # Use "env CFLAGS=... make release" to change release flag
