@@ -31,7 +31,7 @@ static int dup_cloexec(int oldfd) {
 }
 
 static void open_dup2(const char *filename, int flags, int newfd) {
-    int fd = open(filename, flags);
+    int fd = open(filename, flags, 0755);
     if (fd < 0)
         die("open");
     if (fd != newfd) {
@@ -70,8 +70,8 @@ _Noreturn void grandchild_main(const struct grandchild_options *options) {
         die("chdir");
 
     open_dup2(options->stdin, O_RDONLY, 0);
-    open_dup2(options->stdout, O_WRONLY, 1);
-    open_dup2(options->stderr, O_WRONLY, 2);
+    open_dup2(options->stdout, O_WRONLY | O_CREAT, 1);
+    open_dup2(options->stderr, O_WRONLY | O_CREAT, 2);
 
     clearenv();
 
