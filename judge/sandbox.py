@@ -27,6 +27,22 @@ class Sandbox:
     async def execute(self, *args, **kwargs):
         raise NotImplementedError()
     async def read(self, filename):
-        raise NotImplementedError()
+        if b"\0" in filename:
+            raise ValueError("filename contains null charactor")
+        if b"\n" in filename:
+            raise ValueError("filename contains newline")
+
+        self._process.stdin.write(b"read %b\n" % filename)
+
+        result = b"";
+        while True:
+            line = await self._process.stdout.readuntil()
+            if line == b"ok\n":
+                return result
+            if line == b"error\n":
+                raise asyncio.IncompleteReadError(result, None)
+            count = int(line)
+            result += await self._process.stdout.readexactly(count)
+
     async def write(self, *args, **kwargs):
         raise NotImplementedError()
