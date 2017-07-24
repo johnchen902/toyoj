@@ -185,3 +185,68 @@ class Sandbox:
         return (await self._raw.read(filename.encode())).decode()
     async def write(self, filename, data, bufsiz = 8192):
         await self._raw.write(filename.encode(), data.encode())
+
+class SandboxPool:
+    def __init__(self, n):
+        self._queue = asyncio.Queue()
+        self._n = n
+
+    async def _async__init__(self):
+        for _ in range(self._n):
+            newbox = Sandbox()
+            await newbox.start()
+            self._queue.put_nowait(newbox)
+
+    def acquire(self):
+        """
+        Acquire a sandbox from the pool.
+
+        Can be used in an `await` expression or with an `async with` block.
+        """
+        return SandboxPoolAcquireContext(self)
+
+    async def _acquire(self):
+        return await self._queue.get()
+
+    async def release(self, box):
+        """Release a sandbox back to the pool."""
+        await box.execute(
+                "/usr/bin/find", "/tmp", "-mindepth", "1", "-delete",
+                uid = 0, gid = 0)
+        self._queue.put_nowait(box)
+
+    async def close(self):
+        """Gracefully close all connections in the pool."""
+        for _ in range(self._n):
+            await (await self._acquire()).close()
+
+    def __await__(self):
+        return self._async__init__().__await__()
+
+    async def __aenter__(self):
+        await self._async__init__()
+        return self
+
+    async def __aexit__(self, *exc):
+        await self.close()
+
+class SandboxPoolAcquireContext:
+    def __init__(self, pool):
+        self.pool = pool
+        self.box = None
+        self.done = False
+
+    async def __aenter__(self):
+        if self.box is not None or self.done:
+            raise ValueError('a sandbox is already acquired')
+        self.box = await self.pool._acquire()
+        return self.box
+
+    async def __aexit__(self, *exc):
+        self.done = True
+        box, self.box = self.box, None
+        await self.pool.release(box)
+
+    def __await__(self):
+        self.done = True
+        return self.pool._acquire().__await__()
