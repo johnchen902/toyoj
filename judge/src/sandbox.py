@@ -3,7 +3,7 @@ import asyncio
 class SandboxError(Exception):
     pass
 
-class Sandbox:
+class RawSandbox:
     def __init__(self):
         self._process = None
     async def start(self):
@@ -41,17 +41,17 @@ class Sandbox:
         if chdir is not None:
             terms.append(b"--chdir=%b" % chdir)
         if uid is not None:
-            terms.append(b"--uid=%d" % uid)
+            terms.append(b"--uid=%b" % uid)
         if gid is not None:
-            terms.append(b"--gid=%d" % gid)
+            terms.append(b"--gid=%b" % gid)
         if user_time is not None:
-            terms.append(b"--user-time=%d" % user_time)
+            terms.append(b"--user-time=%b" % user_time)
         if wall_time is not None:
-            terms.append(b"--wall-time=%d" % wall_time)
+            terms.append(b"--wall-time=%b" % wall_time)
         if memory is not None:
-            terms.append(b"--memory=%d" % memory)
+            terms.append(b"--memory=%b" % memory)
         if pids is not None:
-            terms.append(b"--pids=%d" % pids)
+            terms.append(b"--pids=%b" % pids)
         terms.append(b"--")
         terms.append(command)
         terms += param
@@ -131,3 +131,57 @@ def terms_to_command(terms):
                 command += bytes([byte])
         command += b" "
     return command[:-1]
+
+class Sandbox:
+    def __init__(self):
+        self._raw = RawSandbox()
+    async def start(self):
+        await self._raw.start()
+    async def close(self):
+        await self._raw.close()
+    async def __aenter__(self):
+        await self._raw.__aenter__()
+        return self
+    async def __aexit__(self, exc_type, exc, tb):
+        await self._raw.__aexit__(exc_type, exc, tb)
+    async def execute(self, command, *param,
+            stdin = None, stdout = None, stderr = None, chdir = None,
+            uid = None, gid = None,
+            user_time = None, wall_time = None, memory = None, pids = None):
+        command = command.encode()
+        param = [p.encode() for p in param]
+        stdin = stdin.encode() if stdin is not None else None
+        stdout = stdout.encode() if stdout is not None else None
+        stderr = stderr.encode() if stderr is not None else None
+        chdir = chdir.encode() if chdir is not None else None
+        uid = str(uid).encode() if uid is not None else None
+        gid = str(gid).encode() if gid is not None else None
+        user_time = str(user_time).encode() if user_time is not None else None
+        wall_time = str(wall_time).encode() if wall_time is not None else None
+        memory = str(memory).encode() if memory is not None else None
+        pids = str(pids).encode() if pids is not None else None
+
+        rawresult = await self._raw.execute(command, *param,
+                stdin = stdin, stdout = stdout, stderr = stderr,
+                chdir = chdir, uid = uid, gid = gid,
+                user_time = user_time, wall_time = wall_time,
+                memory = memory, pids = pids)
+
+        result = {}
+        for key, value in rawresult.items():
+            try:
+                result[key.decode()] = int(value)
+            except ValueError:
+                pass
+        if "wstatus" in result:
+            wstatus = result["wstatus"]
+            if wstatus & 0x7f:
+                result["returncode"] = -(wstatus & 0x7f)
+            else:
+                result["returncode"] = (wstatus & 0xff00) >> 8
+
+        return result
+    async def read(self, filename):
+        return (await self._raw.read(filename.encode())).decode()
+    async def write(self, filename, data, bufsiz = 8192):
+        await self._raw.write(filename.encode(), data.encode())
