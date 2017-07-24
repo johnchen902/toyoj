@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
+import argparse
 import asyncio
 import asyncpg
-from collections import deque
 import logging
+import platform
 import signal
-import sys
 
 from taskfetcher import TaskFetcher
 from taskrunner import TaskRunner
@@ -25,10 +25,12 @@ def get_checkers():
         "exact" : ExactChecker(),
     }
 
-async def run(dsn):
-    async with asyncpg.create_pool(dsn, min_size = 1, max_size = 2) as pool, \
-               sandbox.SandboxPool(n = 4) as sandbox_pool:
-        task_fetcher = TaskFetcher("test-2", pool)
+async def run(args):
+    async with asyncpg.create_pool(args.dsn,
+                    min_size = args.min_conn,
+                    max_size = args.max_conn) as pool, \
+               sandbox.SandboxPool(n = args.max_sandbox) as sandbox_pool:
+        task_fetcher = TaskFetcher(args.name, pool)
         task_runner = TaskRunner(sandbox_pool, get_languages(), get_checkers())
         task_writer = TaskWriter(pool)
 
@@ -66,14 +68,26 @@ async def run(dsn):
                 await asyncio.wait(pending)
             await task_fetcher.cancel_unfinished()
 
-if len(sys.argv) != 2:
-    print("Usage: ./main.py DSN", file = sys.stderr)
-    print("See asyncpg document for DSN format", file = sys.stderr)
-    sys.exit(1)
-dsn = sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument("--dsn",
+        default = "postgres://@/toyoj",
+        help = "The data source name as defined by asyncpg (default: %(default)s)")
+parser.add_argument("--name",
+        default = platform.node()[:32] or "unnamed-judge",
+        help = "Name of the judge (default: %(default)s)")
+parser.add_argument("--min-conn", metavar = "N",
+        default = 2, type = int,
+        help = "Number of database connection to initialize with (default: %(default)d)")
+parser.add_argument("--max-conn", metavar = "N",
+        default = 2, type = int,
+        help = "Max number of database connection (default: %(default)d)")
+parser.add_argument("--max-sandbox", metavar = "N",
+        default = 1, type = int,
+        help = "Max number of sandbox (default: %(default)d)")
+args = parser.parse_args()
 
 loop = asyncio.get_event_loop()
-task = asyncio.ensure_future(run(dsn))
+task = asyncio.ensure_future(run(args))
 
 def terminate():
     task.cancel()
