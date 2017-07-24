@@ -21,8 +21,9 @@ class Problem {
             return ($c->errorview)($response, 404, "No Such Problem");
         $problem["cansubmit"] = self::checkSubmit($c, $problem_id);
         $problem["canedit"] = self::checkEdit($c, $problem_id);
+        $languages = $problem["cansubmit"] ? self::getLanguages($c) : [];
         return $c->view->render($response, "problem.html",
-                ["problem" => $problem]);
+                ["problem" => $problem, "languages" => $languages]);
     }
     public static function submit($c, Request $request, Response $response) {
         return (new class extends AbstractPostHandler {
@@ -281,6 +282,13 @@ class Problem {
             $problem["testcases"] = $testcases;
         }
         return $problem;
+    }
+    private static function getLanguages($c) {
+        $q = $c->qf->newSelect()
+            ->cols(["name"])
+            ->from("languages")
+            ->orderBy(["name"]);
+        return $c->db->fetchAll($q->getStatement(), $q->getBindValues());
     }
 };
 ?>
