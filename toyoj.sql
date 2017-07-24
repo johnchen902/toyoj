@@ -1,3 +1,5 @@
+-- schema
+
 CREATE TABLE checkers (
     name VARCHAR(32) PRIMARY KEY
 );
@@ -235,3 +237,12 @@ GRANT USAGE ON problems_id_seq TO toyojweb;
 GRANT USAGE ON subtasks_id_seq TO toyojweb;
 GRANT USAGE ON testcases_id_seq TO toyojweb;
 GRANT USAGE ON submissions_id_seq TO toyojweb;
+
+-- data
+
+INSERT INTO checkers (name) VALUES
+    ('exact');
+
+INSERT INTO languages (name) VALUES
+    ('C++14'),
+    ('Haskell');

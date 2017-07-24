@@ -68,10 +68,16 @@
   <form method="post">
     <input type="hidden" name="language" value="C++14">
     <div>
-      <label>
-        Paste your code here:
-        <textarea name="code" cols="80" rows="22" wrap="off"></textarea>
-      </label>
+      Language:
+      <select name="language" required>
+        <option selected disabled hidden></option>
+{% for language in languages %}
+        <option value="{{ language.name }}">{{ language.name }}</option>
+{% endfor %}
+      </select>
+    </div>
+    <div>
+      <textarea name="code" cols="80" rows="22" wrap="off" required></textarea>
     </div>
     <div>
       <button type="submit">Submit</button>
