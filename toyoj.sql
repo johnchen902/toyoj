@@ -122,6 +122,7 @@ CREATE TRIGGER subtask_testcases_view_update_trigger
 CREATE VIEW results_view AS SELECT
     s.id AS submission_id,
     t.id AS testcase_id,
+    s.problem_id AS problem_id,
     r.accepted,
     r.verdict,
     r.time,
@@ -189,6 +190,29 @@ FROM submissions s
         FROM subtask_results_view k
         GROUP BY k.submission_id
     ) y ON (s.id = y.submission_id);
+
+CREATE FUNCTION notify_new_judge_task() RETURNS trigger AS $$
+BEGIN
+    NOTIFY new_judge_task;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER submissions_insert_notify_new_judge_task
+    AFTER INSERT ON submissions
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER testcases_insert_notify_new_judge_task
+    AFTER INSERT ON testcases
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER results_judges_delete_notify_new_judge_task
+    AFTER DELETE OR TRUNCATE ON result_judges
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
+
+CREATE TRIGGER results_delete_notify_new_judge_task
+    AFTER DELETE OR TRUNCATE ON results
+    FOR EACH STATEMENT EXECUTE PROCEDURE notify_new_judge_task();
 
 GRANT SELECT ON checkers TO toyojweb;
 GRANT SELECT ON languages TO toyojweb;

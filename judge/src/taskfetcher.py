@@ -1,0 +1,84 @@
+import asyncio
+from collections import namedtuple
+
+class JudgeTask:
+    def __init__(self,
+            problem_id, submission_id, testcase_id, submission, testcase,
+            accepted = None, time = None, memory = None, verdict = None):
+        self.problem_id = problem_id
+        self.submission_id = submission_id
+        self.testcase_id = testcase_id
+        self.submission = submission
+        self.testcase = testcase
+        self.accepted = None
+        self.time = None
+        self.memory = None
+        self.verdict = None
+    def __repr__(self):
+        return ("JudgeTask(problem_id=%r, submission_id=%r, testcase_id=%r" +
+            ", submission=%r, testcase=%r" +
+            ", accepted=%r, time=%r, memory=%r, verdict=%r)") % (
+            self.problem_id, self.submission_id, self.testcase_id,
+            self.submission, self.testcase,
+            self.accepted, self.time, self.memory, self.verdict)
+Submission = namedtuple("Submission", ["language_name", "code"])
+TestCase = namedtuple("TestCase", ["time_limit", "memory_limit",
+        "checker_name", "input", "output"])
+
+class TaskFetcher:
+    def __init__(self, judge_name, pool):
+        self.judge_name = judge_name
+        self.pool = pool
+
+    async def fetch(self):
+        async with self.pool.acquire() as conn:
+            event = asyncio.Event()
+            def listener(con_ref, pid, channel, payload):
+                event.set()
+            await conn.add_listener("new_judge_task", listener)
+            while True:
+                event.clear()
+                task = await self.fetch_nullable_with_conn(conn)
+                if task is not None:
+                    return task
+                await event.wait()
+
+    async def fetch_nullable(self):
+        async with self.pool.acquire() as conn:
+            return await self.fetch_nullable_with_conn(conn)
+
+    async def fetch_nullable_with_conn(self, conn):
+        row = await conn.fetchrow("""
+            INSERT INTO result_judges (problem_id, submission_id, testcase_id, judge_name)
+            (SELECT problem_id, submission_id, testcase_id, $1 AS judge_name
+                FROM results_view
+                WHERE judge_name IS NULL AND accepted IS NULL
+                LIMIT 1)
+            RETURNING problem_id, submission_id, testcase_id
+        """, self.judge_name)
+        if row is None:
+            return None
+        problem_id = row["problem_id"]
+        submission_id = row["submission_id"]
+        testcase_id = row["testcase_id"]
+        submission = Submission(**await conn.fetchrow("""
+            SELECT language_name, code
+            FROM submissions
+            WHERE id = $1
+        """, submission_id))
+        testcase = TestCase(**await conn.fetchrow("""
+            SELECT time_limit, memory_limit, checker_name, input, output
+            FROM testcases
+            WHERE id = $1
+        """, testcase_id))
+        return JudgeTask(problem_id, submission_id, testcase_id,
+                         submission, testcase)
+
+    async def cancel_unfinished(self):
+        await self.pool.execute("""
+            DELETE FROM result_judges AS x USING results_view AS y
+            WHERE x.submission_id = y.submission_id
+                AND x.testcase_id = y.testcase_id
+                AND y.judge_name = $1
+                AND y.accepted IS NULL;
+        """, self.judge_name)

@@ -19,11 +19,17 @@ This is a very normal Online Judge.
    3. Enable **pdo_pgsql.so** in /etc/php/php.ini
 3. Setup Nginx
    1. Setup Nginx usually
-   2. Runs `composer install` in web/
+   2. Run `composer install` in web/
    3. Copy web/ to /srv/http/toyoj
    4. Modify /srv/http/toyoj/config/config.php if needed
-   4. Include toyoj.conf in a server block of /etc/nginx/nginx.conf
-4. Setup judge back-end
-   1. Install **python** from official repository
-   2. Install **cachetools** and **asyncpg** from pypi
+   5. Include toyoj.conf in a server block of /etc/nginx/nginx.conf
+4. Install sandbox
+   1. Install GCC and Make usually
+   2. Run `env CFLAGS="whatever flag you want" make release` in sandbox/
+   3. Put the sandbox executable to somewhere in $PATH (of the judge)
+   4. Make sure **newuidmap** and **newgidmap** are setuid root
+   5. Allocate at least 1 subuid and 1 subgid to user **judge**
+5. Setup judge
+   1. Install Python usually
+   2. Install dependencies listed in judge/requirement.txt
    3. ??? (WIP)
