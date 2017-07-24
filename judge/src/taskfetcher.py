@@ -53,6 +53,7 @@ class TaskFetcher:
             (SELECT problem_id, submission_id, testcase_id, $1 AS judge_name
                 FROM results_view
                 WHERE judge_name IS NULL AND accepted IS NULL
+                ORDER BY submission_id ASC, testcase_id ASC
                 LIMIT 1)
             RETURNING problem_id, submission_id, testcase_id
         """, self.judge_name)
