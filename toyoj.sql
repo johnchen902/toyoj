@@ -75,8 +75,8 @@ CREATE TABLE results (
     testcase_id INTEGER NOT NULL REFERENCES testcases ON DELETE CASCADE,
     problem_id INTEGER NOT NULL REFERENCES problems ON DELETE CASCADE,
     accepted BOOLEAN NOT NULL,
-    time INTEGER NOT NULL CHECK (time >= 0),
-    memory INTEGER NOT NULL CHECK (memory >= 0),
+    time INTEGER NULL CHECK (time >= 0), -- should be null if the program is not ran at all (e.g. CE)
+    memory INTEGER NULL CHECK (memory >= 0), -- same as time
     verdict VARCHAR(3) NOT NULL,
     judge_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     PRIMARY KEY (submission_id, testcase_id),

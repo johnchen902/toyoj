@@ -14,9 +14,5 @@ class TaskRunner:
             await lang.run_task(box, task)
             if task.verdict is not None:
                 task.accepted = False
-                if task.time is None:
-                    task.time = 0
-                if task.memory is None:
-                    task.memory = 0
             else:
                 await check.check(box, task)

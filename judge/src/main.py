@@ -43,10 +43,6 @@ async def run(args):
                 logging.exception("When running %s", task)
                 task.verdict = "XX"
                 task.accepted = False
-                if task.time is None:
-                    task.time = 0
-                if task.memory is None:
-                    task.memory = 0
             try:
                 await task_writer.write(task)
             except asyncio.CancelledError:
