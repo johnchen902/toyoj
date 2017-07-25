@@ -1,4 +1,10 @@
 import asyncio
+import logging
+import os
+
+__all__ = ["SandboxError", "RawSandbox", "Sandbox", "SandboxPool"]
+
+logger = logging.getLogger(__name__)
 
 class SandboxError(Exception):
     pass
@@ -9,6 +15,7 @@ class RawSandbox:
     async def start(self):
         if self._process is not None:
             raise ValueError("The sandbox has started")
+        await wait_for_cgroups_setup()
         self._process = await asyncio.create_subprocess_exec(
                 "sandbox",
                 stdin = asyncio.subprocess.PIPE,
@@ -109,6 +116,33 @@ class RawSandbox:
         if line == b"error\n":
             raise SandboxError()
         assert line == b"ok\n"
+
+def check_cgroups():
+    with open("/proc/self/cgroup") as f:
+        read_data = f.read()
+    for line in read_data.split("\n"):
+        try:
+            _, controller, path = line.split(":")
+        except ValueError:
+            continue
+        if controller in ["cpu,cpuacct", "memory", "pids"]:
+            fullpath = "/sys/fs/cgroup/%s/%s" % (controller, path)
+            if not os.access(fullpath, os.W_OK):
+                return False
+    return True
+
+async def wait_for_cgroups_setup():
+    delay = 0.1
+    total = 0
+    while not check_cgroups():
+        if total >= 60:
+            logger.error("cgroups are not set up after one minute")
+            raise SandboxError()
+
+        logger.debug("waiting %f second for cgroups setup", delay)
+        await asyncio.sleep(delay)
+        total += delay
+        delay *= 1.1
 
 def terms_to_command(terms):
     byte_space = b" "[0]
