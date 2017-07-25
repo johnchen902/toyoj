@@ -142,7 +142,7 @@ def signal_handler(signum, stackframe):
     logger.info("Received signal %d", signum)
     loop.call_soon_threadsafe(terminate)
 
-signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, signal_handler)
 
 try:
     loop.run_until_complete(task)
