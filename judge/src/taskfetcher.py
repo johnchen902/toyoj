@@ -1,5 +1,8 @@
 import asyncio
+import logging
 from collections import namedtuple
+
+logger = logging.getLogger(__name__)
 
 class JudgeTask:
     def __init__(self,
@@ -21,6 +24,9 @@ class JudgeTask:
             self.problem_id, self.submission_id, self.testcase_id,
             self.submission, self.testcase,
             self.accepted, self.time, self.memory, self.verdict)
+    def __str__(self):
+        return ("JudgeTask(Problem #%d, Submission #%d, Testcase #%d)") \
+                % (self.problem_id, self.submission_id, self.testcase_id)
 Submission = namedtuple("Submission", ["language_name", "code"])
 TestCase = namedtuple("TestCase", ["time_limit", "memory_limit",
         "checker_name", "input", "output"])
@@ -35,13 +41,16 @@ class TaskFetcher:
         async with self.pool.acquire() as conn:
             event = asyncio.Event()
             def listener(con_ref, pid, channel, payload):
+                logger.debug("Received notification")
                 event.set()
             await conn.add_listener("new_judge_task", listener)
             while True:
                 event.clear()
                 task = await self.fetch_nullable_with_conn(conn)
                 if task is not None:
+                    logger.debug("Fetched %s", task)
                     return task
+                logger.debug("No task found; wait for notification...")
                 await event.wait()
 
     async def fetch_nullable(self):

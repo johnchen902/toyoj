@@ -11,6 +11,8 @@ from taskrunner import TaskRunner
 from taskwriter import TaskWriter
 import sandbox
 
+logger = logging.getLogger(__name__)
+
 def get_languages():
     from language.cpp import Cpp
     from language.haskell import Haskell
@@ -23,14 +25,15 @@ async def get_available_languages(pool):
     async def add_if_available(result, name, lang, pool):
         try:
             async with pool.acquire() as box:
+                logger.debug("Checking availability of %s", name)
                 if await lang.is_available(box):
                     result[name] = lang
         except asyncio.CancelledError:
             raise
         except sandbox.SandboxError:
             pass
-        except:
-            logging.exception("When checking availability of %s", name)
+        except Exception:
+            logger.exception("Error checking availability of %s", name)
 
     result = {}
     await asyncio.wait({
@@ -56,21 +59,24 @@ async def run(args):
         task_runner = TaskRunner(sandbox_pool, languages, checkers)
         task_writer = TaskWriter(pool)
 
+        logger.info("Available languages: %s", languages.keys())
+        logger.info("Available checkers: %s", checkers.keys())
+
         async def run_and_write(task):
             try:
                 await task_runner.run(task)
             except asyncio.CancelledError:
                 raise
-            except:
-                logging.exception("When running %s", task)
+            except Exception:
+                logger.exception("Error running %s", task)
                 task.verdict = "XX"
                 task.accepted = False
             try:
                 await task_writer.write(task)
             except asyncio.CancelledError:
                 raise
-            except:
-                logging.exception("When writing back %s", task)
+            except Exception:
+                logger.exception("Error writing %s", task)
 
         pending = set()
         try:
@@ -83,8 +89,23 @@ async def run(args):
             for p in pending:
                 p.cancel()
             if(pending):
+                logger.info("Waiting for pending tasks...")
                 await asyncio.wait(pending)
             await task_fetcher.cancel_unfinished()
+
+class LogLevelParser:
+    KNOWN_LEVEL = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
+    def __call__(self, level):
+        try:
+            return int(level)
+        except ValueError:
+            pass
+        level = level.upper()
+        if level not in self.KNOWN_LEVEL:
+            raise ValueError()
+        return level
+    def __repr__(self):
+        return "log level"
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dsn",
@@ -102,14 +123,23 @@ parser.add_argument("--max-conn", metavar = "N",
 parser.add_argument("--max-sandbox", metavar = "N",
         default = 1, type = int,
         help = "Max number of sandbox (default: %(default)d)")
+parser.add_argument("--log-file", metavar = "FILE",
+        default = None,
+        help = "Log file (default: %(default)s)")
+parser.add_argument("--log-level", metavar = "LEVEL",
+        default = "WARNING", type = LogLevelParser(),
+        help = "Log level (default: %(default)s)")
 args = parser.parse_args()
+
+logging.basicConfig(filename = args.log_file, level = args.log_level)
 
 loop = asyncio.get_event_loop()
 task = asyncio.ensure_future(run(args))
 
 def terminate():
     task.cancel()
-def signal_handler(a, b):
+def signal_handler(signum, stackframe):
+    logger.info("Received signal %d", signum)
     loop.call_soon_threadsafe(terminate)
 
 signal.signal(signal.SIGINT, signal_handler)
