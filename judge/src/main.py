@@ -19,6 +19,26 @@ def get_languages():
         "Haskell" : Haskell(),
     }
 
+async def get_available_languages(pool):
+    async def add_if_available(result, name, lang, pool):
+        try:
+            async with pool.acquire() as box:
+                if await lang.is_available(box):
+                    result[name] = lang
+        except asyncio.CancelledError:
+            raise
+        except sandbox.SandboxError:
+            pass
+        except:
+            logging.exception("When checking availability of %s", name)
+
+    result = {}
+    await asyncio.wait({
+        asyncio.ensure_future(add_if_available(result, name, lang, pool))
+        for name, lang in get_languages().items()
+    })
+    return result
+
 def get_checkers():
     from checker.exact import ExactChecker
     return {
@@ -30,8 +50,10 @@ async def run(args):
                     min_size = args.min_conn,
                     max_size = args.max_conn) as pool, \
                sandbox.SandboxPool(n = args.max_sandbox) as sandbox_pool:
-        task_fetcher = TaskFetcher(args.name, pool)
-        task_runner = TaskRunner(sandbox_pool, get_languages(), get_checkers())
+        languages = await get_available_languages(sandbox_pool)
+        checkers = get_checkers()
+        task_fetcher = TaskFetcher(args.name, pool, languages.keys())
+        task_runner = TaskRunner(sandbox_pool, languages, checkers)
         task_writer = TaskWriter(pool)
 
         async def run_and_write(task):

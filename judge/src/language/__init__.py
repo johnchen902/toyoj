@@ -1,7 +1,7 @@
 class Language:
     async def run_task(self, sandbox, task):
         # Compile the source code
-        if await self._compile(sandbox, task.submission):
+        if await self._compile(sandbox, task.submission.code):
             task.verdict = "CE"
             return
         # Put input file in the sandbox
@@ -28,7 +28,7 @@ class Language:
             task.verdict = "XX"
             return
 
-    async def _compile(self, sandbox, submission):
+    async def _compile(self, sandbox, code):
         raise NotImplementedError()
 
     async def _execute(self, sandbox, **kwargs):
@@ -57,3 +57,6 @@ class Language:
                 return "MLE"
             return "RE"
         return None
+
+    async def is_available(self, sandbox):
+        return True

@@ -130,7 +130,9 @@ CREATE VIEW results_view AS SELECT
     r.time,
     r.memory,
     j.judge_name,
-    r.judge_time
+    r.judge_time,
+    s.language_name as language_name, -- judge want this
+    t.checker_name as checker_name -- same as language_name
 FROM submissions s JOIN testcases t USING (problem_id)
     LEFT JOIN result_judges j ON (s.id = j.submission_id AND t.id = j.testcase_id)
     LEFT JOIN results r ON (s.id = r.submission_id AND t.id = r.testcase_id);

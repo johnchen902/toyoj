@@ -26,9 +26,10 @@ TestCase = namedtuple("TestCase", ["time_limit", "memory_limit",
         "checker_name", "input", "output"])
 
 class TaskFetcher:
-    def __init__(self, judge_name, pool):
+    def __init__(self, judge_name, pool, language_names):
         self.judge_name = judge_name
         self.pool = pool
+        self.language_names = language_names
 
     async def fetch(self):
         async with self.pool.acquire() as conn:
@@ -52,11 +53,11 @@ class TaskFetcher:
             INSERT INTO result_judges (problem_id, submission_id, testcase_id, judge_name)
             (SELECT problem_id, submission_id, testcase_id, $1 AS judge_name
                 FROM results_view
-                WHERE judge_name IS NULL AND accepted IS NULL
+                WHERE judge_name IS NULL AND accepted IS NULL AND language_name = ANY($2 :: varchar(32)[])
                 ORDER BY submission_id ASC, testcase_id ASC
                 LIMIT 1)
             RETURNING problem_id, submission_id, testcase_id
-        """, self.judge_name)
+        """, self.judge_name, self.language_names)
         if row is None:
             return None
         problem_id = row["problem_id"]
