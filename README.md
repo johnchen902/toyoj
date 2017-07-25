@@ -32,4 +32,5 @@ This is a very normal Online Judge.
 5. Setup judge
    1. Install Python usually
    2. Install dependencies listed in judge/requirement.txt
-   3. ??? (WIP)
+   3. Run `judge/grant-cgroups.sh $$` as user **judge**
+   4. Run judge/src/main.py in the same shell

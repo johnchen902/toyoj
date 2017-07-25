@@ -1,5 +1,8 @@
 import asyncio
+import logging
 from collections import namedtuple
+
+logger = logging.getLogger(__name__)
 
 class JudgeTask:
     def __init__(self,
@@ -21,26 +24,33 @@ class JudgeTask:
             self.problem_id, self.submission_id, self.testcase_id,
             self.submission, self.testcase,
             self.accepted, self.time, self.memory, self.verdict)
+    def __str__(self):
+        return ("JudgeTask(Problem #%d, Submission #%d, Testcase #%d)") \
+                % (self.problem_id, self.submission_id, self.testcase_id)
 Submission = namedtuple("Submission", ["language_name", "code"])
 TestCase = namedtuple("TestCase", ["time_limit", "memory_limit",
         "checker_name", "input", "output"])
 
 class TaskFetcher:
-    def __init__(self, judge_name, pool):
+    def __init__(self, judge_name, pool, language_names):
         self.judge_name = judge_name
         self.pool = pool
+        self.language_names = language_names
 
     async def fetch(self):
         async with self.pool.acquire() as conn:
             event = asyncio.Event()
             def listener(con_ref, pid, channel, payload):
+                logger.debug("Received notification")
                 event.set()
             await conn.add_listener("new_judge_task", listener)
             while True:
                 event.clear()
                 task = await self.fetch_nullable_with_conn(conn)
                 if task is not None:
+                    logger.debug("Fetched %s", task)
                     return task
+                logger.debug("No task found; wait for notification...")
                 await event.wait()
 
     async def fetch_nullable(self):
@@ -52,10 +62,11 @@ class TaskFetcher:
             INSERT INTO result_judges (problem_id, submission_id, testcase_id, judge_name)
             (SELECT problem_id, submission_id, testcase_id, $1 AS judge_name
                 FROM results_view
-                WHERE judge_name IS NULL AND accepted IS NULL
+                WHERE judge_name IS NULL AND accepted IS NULL AND language_name = ANY($2 :: varchar(32)[])
+                ORDER BY submission_id ASC, testcase_id ASC
                 LIMIT 1)
             RETURNING problem_id, submission_id, testcase_id
-        """, self.judge_name)
+        """, self.judge_name, self.language_names)
         if row is None:
             return None
         problem_id = row["problem_id"]

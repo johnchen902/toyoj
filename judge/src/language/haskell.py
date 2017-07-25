@@ -1,8 +1,9 @@
 from . import Language
+from sandbox import SandboxError
 
 class Haskell(Language):
-    async def _compile(self, sandbox, submission):
-        await sandbox.write("/tmp/main.hs", submission.code)
+    async def _compile(self, sandbox, code):
+        await sandbox.write("/tmp/main.hs", code)
         result = await sandbox.execute(
                 "/usr/bin/env", "PATH=/usr/bin",
                 "/usr/bin/ghc", "/tmp/main.hs",
@@ -15,3 +16,6 @@ class Haskell(Language):
 
     async def _execute(self, sandbox, **kwargs):
         return await sandbox.execute("/tmp/main", **kwargs)
+
+    async def is_available(self, sandbox):
+        return 0 == await self._compile(sandbox, "main = return ()\n")

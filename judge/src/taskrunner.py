@@ -1,5 +1,7 @@
 import asyncio
-import sandbox
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TaskRunner:
     def __init__(self, sandbox_pool, languages, checkers):
@@ -9,6 +11,7 @@ class TaskRunner:
 
     async def run(self, task):
         async with self.sandbox_pool.acquire() as box:
+            logger.debug("Running %s", task)
             lang = self.languages[task.submission.language_name]
             check = self.checkers[task.testcase.checker_name]
             await lang.run_task(box, task)

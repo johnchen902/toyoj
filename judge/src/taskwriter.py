@@ -1,8 +1,13 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 class TaskWriter:
     def __init__(self, pool):
         self.pool = pool
 
     async def write(self, task):
+        logger.debug("Writing %s", task)
         return await self.pool.execute("""
             INSERT INTO results (problem_id, submission_id, testcase_id,
                 accepted, time, memory, verdict)
