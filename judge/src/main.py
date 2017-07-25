@@ -79,12 +79,26 @@ async def run(args):
                 logger.exception("Error writing %s", task)
 
         pending = set()
+        pending_event = asyncio.Event()
+
+        def remove_from_pending(future):
+            pending.remove(future)
+            pending_event.set()
+            if not pending:
+                logger.debug("No pending tasks")
+        async def pending_control():
+            while len(pending) >= args.max_pending_task:
+                logger.debug("Max number of pending tasks reached, wait...")
+                pending_event.clear()
+                await pending_event.wait()
+
         try:
             while True:
+                await pending_control()
                 task = await task_fetcher.fetch()
                 future = asyncio.ensure_future(run_and_write(task))
                 pending.add(future)
-                _, pending = await asyncio.wait(pending, timeout = 0)
+                future.add_done_callback(remove_from_pending)
         finally:
             for p in pending:
                 p.cancel()
@@ -123,6 +137,9 @@ parser.add_argument("--max-conn", metavar = "N",
 parser.add_argument("--max-sandbox", metavar = "N",
         default = 1, type = int,
         help = "Max number of sandbox (default: %(default)d)")
+parser.add_argument("--max-pending-task", metavar = "N",
+        default = None, type = int,
+        help = "Max number of pending tasks (default: twice of --max-sandbox)")
 parser.add_argument("--log-file", metavar = "FILE",
         default = None,
         help = "Log file (default: %(default)s)")
@@ -130,6 +147,8 @@ parser.add_argument("--log-level", metavar = "LEVEL",
         default = "WARNING", type = LogLevelParser(),
         help = "Log level (default: %(default)s)")
 args = parser.parse_args()
+if args.max_pending_task is None:
+    args.max_pending_task = 2 * args.max_sandbox
 
 logging.basicConfig(filename = args.log_file, level = args.log_level)
 
