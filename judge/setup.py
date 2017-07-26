@@ -7,7 +7,7 @@ setup(
 
     entry_points= {
         'console_scripts': [
-            'toyojjudge = toyojjudge.main:main'
+            'toyoj-judge = toyojjudge.main:main'
         ]
     },
 
