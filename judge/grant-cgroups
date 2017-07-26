@@ -4,8 +4,26 @@ if [ "$#" != 1 ] ; then
     exit 1
 fi
 pid="$1"
-user=$(ps --pid $1 -o uid -h | tr -d '[:space:]')
-group=$(ps --pid $1 -o gid -h | tr -d '[:space:]')
+
+wait_priv_drop() {
+    attempt=0
+    while true; do
+        user=$(ps --pid "$pid" -o uid -h | tr -d '[:space:]')
+        group=$(ps --pid "$pid" -o gid -h | tr -d '[:space:]')
+        if [ "$user" -ne 0 -a "$group" -ne 0 ]; then
+            break
+        fi
+        if [ "$attempt" -gt 100 ]; then
+            echo "<3>pid=$pid is still owned by root (user=$user group=$group) after 10 seconds" >&2
+            exit 1
+        fi
+        sleep 0.1
+        attempt=$(($attempt + 1))
+    done
+}
+
+wait_priv_drop
+echo "<6>pid=$pid user=$user group=$group" >&2
 
 data=$(</proc/$pid/cgroup)
 
