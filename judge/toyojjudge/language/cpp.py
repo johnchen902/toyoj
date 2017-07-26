@@ -1,5 +1,4 @@
 from . import Language
-from sandbox import SandboxError
 
 class Cpp(Language):
     def __init__(self, std):

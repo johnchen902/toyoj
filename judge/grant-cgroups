@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+if [ "$#" != 1 ] ; then
+    echo "Usage: $0 PID" >&2
+    exit 1
+fi
+pid="$1"
+user=$(ps --pid $1 -o uid -h | tr -d '[:space:]')
+group=$(ps --pid $1 -o gid -h | tr -d '[:space:]')
+
+data=$(</proc/$pid/cgroup)
+
+while IFS=: read id controller path; do
+    case $controller in
+        "")
+            controller="unified";;
+        "name=systemd")
+            controller="systemd";;
+    esac
+    cgnow="/sys/fs/cgroup/$controller/$path"
+    if [ "$controller" = "cpuset" ]; then
+        echo 1 > "$cgnow/cgroup.clone_children"
+    fi
+    cgnew=$(mktemp -d -p "$cgnow" toyoj-judge-XXXXXX) && \
+        chown -R "$user:$group" "$cgnew" && \
+        echo "$pid" > "$cgnew/cgroup.procs"
+done <<< "$data"

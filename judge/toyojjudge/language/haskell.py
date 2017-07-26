@@ -1,5 +1,4 @@
 from . import Language
-from sandbox import SandboxError
 
 class Haskell(Language):
     async def _compile(self, sandbox, code):

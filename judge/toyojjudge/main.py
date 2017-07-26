@@ -6,16 +6,16 @@ import logging
 import platform
 import signal
 
-from taskfetcher import TaskFetcher
-from taskrunner import TaskRunner
-from taskwriter import TaskWriter
-import sandbox
+from toyojjudge.taskfetcher import TaskFetcher
+from toyojjudge.taskrunner import TaskRunner
+from toyojjudge.taskwriter import TaskWriter
+import toyojjudge.sandbox as sandbox
 
 logger = logging.getLogger(__name__)
 
 def get_languages():
-    from language.cpp import Cpp
-    from language.haskell import Haskell
+    from toyojjudge.language.cpp import Cpp
+    from toyojjudge.language.haskell import Haskell
     return {
         "C++14" : Cpp("c++14"),
         "Haskell" : Haskell(),
@@ -43,7 +43,7 @@ async def get_available_languages(pool):
     return result
 
 def get_checkers():
-    from checker.exact import ExactChecker
+    from toyojjudge.checker.exact import ExactChecker
     return {
         "exact" : ExactChecker(),
     }
@@ -148,24 +148,29 @@ parser.add_argument("--log-file", metavar = "FILE",
 parser.add_argument("--log-level", metavar = "LEVEL",
         default = "WARNING", type = LogLevelParser(),
         help = "Log level (default: %(default)s)")
-args = parser.parse_args()
-if args.max_pending_task is None:
-    args.max_pending_task = 2 * args.max_sandbox
 
-logging.basicConfig(filename = args.log_file, level = args.log_level)
+def main():
+    args = parser.parse_args()
+    if args.max_pending_task is None:
+        args.max_pending_task = 2 * args.max_sandbox
 
-loop = asyncio.get_event_loop()
-task = asyncio.ensure_future(run(args))
+    logging.basicConfig(filename = args.log_file, level = args.log_level)
 
-def terminate():
-    task.cancel()
-def signal_handler(signum, stackframe):
-    logger.info("Received signal %d", signum)
-    loop.call_soon_threadsafe(terminate)
+    loop = asyncio.get_event_loop()
+    task = asyncio.ensure_future(run(args))
 
-signal.signal(signal.SIGTERM, signal_handler)
+    def terminate():
+        task.cancel()
+    def signal_handler(signum, stackframe):
+        logger.info("Received signal %d", signum)
+        loop.call_soon_threadsafe(terminate)
 
-try:
-    loop.run_until_complete(task)
-except asyncio.CancelledError:
-    pass
+    signal.signal(signal.SIGTERM, signal_handler)
+
+    try:
+        loop.run_until_complete(task)
+    except asyncio.CancelledError:
+        pass
+
+if __name__ == "__main__":
+    main()
