@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-import argparse
 import asyncio
 import asyncpg
+import configargparse
 import logging
 import platform
 import signal
@@ -121,7 +121,9 @@ class LogLevelParser:
     def __repr__(self):
         return "log level"
 
-parser = argparse.ArgumentParser()
+parser = configargparse.ArgumentParser()
+parser.add_argument("--config", is_config_file = True,
+        help = "Config file path (default: %(default)s)")
 parser.add_argument("--dsn",
         default = "postgres://@/toyoj",
         help = "The data source name as defined by asyncpg (default: %(default)s)")
