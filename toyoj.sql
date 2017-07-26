@@ -240,6 +240,12 @@ GRANT USAGE ON subtasks_id_seq TO toyojweb;
 GRANT USAGE ON testcases_id_seq TO toyojweb;
 GRANT USAGE ON submissions_id_seq TO toyojweb;
 
+GRANT SELECT ON results_view TO toyojjudge;
+GRANT SELECT, INSERT, DELETE ON result_judges TO toyojjudge;
+GRANT SELECT ON submissions TO toyojjudge;
+GRANT SELECT ON testcases TO toyojjudge;
+GRANT SELECT, INSERT ON results TO toyojjudge;
+
 -- data
 
 INSERT INTO checkers (name) VALUES
