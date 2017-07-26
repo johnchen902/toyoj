@@ -11,9 +11,12 @@ class TaskRunner:
 
     async def run(self, task):
         async with self.sandbox_pool.acquire() as box:
-            logger.debug("Running %s", task)
-            lang = self.languages[task.submission.language_name]
-            check = self.checkers[task.testcase.checker_name]
+            language_name = task.submission.language_name
+            checker_name = task.testcase.checker_name
+            logger.info("Running %s, language %s, checker %s",
+                    task, language_name, checker_name)
+            lang = self.languages[language_name]
+            check = self.checkers[checker_name]
             await lang.run_task(box, task)
             if task.verdict is not None:
                 task.accepted = False
