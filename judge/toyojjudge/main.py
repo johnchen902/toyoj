@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
+import ast
 import asyncio
 import asyncpg
 import configargparse
 import logging
+import logging.config
 import platform
 import signal
 
@@ -107,20 +109,6 @@ async def run(args):
                 await asyncio.wait(pending)
             await task_fetcher.cancel_unfinished()
 
-class LogLevelParser:
-    KNOWN_LEVEL = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
-    def __call__(self, level):
-        try:
-            return int(level)
-        except ValueError:
-            pass
-        level = level.upper()
-        if level not in self.KNOWN_LEVEL:
-            raise ValueError()
-        return level
-    def __repr__(self):
-        return "log level"
-
 parser = configargparse.ArgumentParser()
 parser.add_argument("--config", is_config_file = True,
         help = "Config file path (default: %(default)s)")
@@ -142,19 +130,25 @@ parser.add_argument("--max-sandbox", metavar = "N",
 parser.add_argument("--max-pending-task", metavar = "N",
         default = None, type = int,
         help = "Max number of pending tasks (default: twice of --max-sandbox)")
-parser.add_argument("--log-file", metavar = "FILE",
-        default = None,
-        help = "Log file (default: %(default)s)")
-parser.add_argument("--log-level", metavar = "LEVEL",
-        default = "WARNING", type = LogLevelParser(),
-        help = "Log level (default: %(default)s)")
+group = parser.add_mutually_exclusive_group()
+group.add_argument("--log-basic", metavar = "DICT",
+        default = None, type = ast.literal_eval,
+        help = "Basic log config; see logging.basicConfig (default: %(default)s)")
+group.add_argument("--log-dict", metavar = "DICT",
+        default = None, type = ast.literal_eval,
+        help = "Advanced log config; see logging.config.dictConfig (default: %(default)s)")
 
 def main():
     args = parser.parse_args()
     if args.max_pending_task is None:
         args.max_pending_task = 2 * args.max_sandbox
 
-    logging.basicConfig(filename = args.log_file, level = args.log_level)
+    if args.log_dict is not None:
+        if args.log_dict['version'] == 1:
+            args.log_dict['disable_existing_loggers'] = False
+        logging.config.dictConfig(args.log_dict)
+    elif args.log_basic is not None:
+        logging.basicConfig(**args.log_basic)
 
     loop = asyncio.get_event_loop()
     task = asyncio.ensure_future(run(args))
