@@ -1,0 +1,59 @@
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% from 'utility.html' import time_tag %}
+{% from 'submission-showall.html' import verdict_of %}
+
+{% set s = submission %}
+{% block title %}Submissions #{{s.id}} - {{ super() }}{% endblock %}
+
+{% block h2 %}Submission #{{s.id}}{% endblock %}
+
+{% block content %}
+<h3>General</h3>
+<table>
+  <tr>
+    <th>Problem</th>
+    <th>Submitter</th>
+    <th>Verdict</th>
+    <th>Time</th>
+    <th>Memory</th>
+    <th>Submit Time</th>
+    <th>Judge Time</th>
+  </tr>
+  <tr>
+    <td><a href="{# url_for('problem.show', problem_id = s.problem_id) #}">{{ s.problem_title }}</a></td>
+    <td><a href="{{ url_for('user.show', user_id = s.submitter_id) }}">{{ s.submitter_username }}</a></td>
+    <td>{{ verdict_of(s) }}</td>
+    <td>{{ '%d ms' % s.time if s.time is not none }}</td>
+    <td>{{ '%d KiB' % s.memory if s.memory is not none }}</td>
+    <td>{{ time_tag(s.submit_time) }}</td>
+    <td>{{ time_tag(s.judge_time) }}</td>
+  </tr>
+</table>
+<h3>Source Code</h3>
+<p>Language: {{ s.language_name }}</p>
+<pre><code>{{ s.code }}</code></pre>
+<h3>Test Cases</h3>
+<table>
+  <tr>
+    <th>ID</th>
+    <th>Accepted</th>
+    <th>Verdict</th>
+    <th>Time</th>
+    <th>Memory</th>
+    <th>Judge</th>
+    <th>Judge Time</th>
+  </tr>
+  {% for tc in s.testcases %}
+  <tr>
+    <td><a href="{# url_for('testcase.show', problem_id = s.problem_id, testcase_id = tc.testcase_id }) #}">{{ tc.testcase_id }}</a></td>
+    <td>{{ 'Yes' if tc.accepted == True else 'No' if tc.accepted == False }}</td>
+    <td>{{ tc.verdict }}</td>
+    <td>{{ '%d ms' % tc.time if tc.time is not none }}</td>
+    <td>{{ '%d KiB' % tc.memory if tc.memory is not none }}</td>
+    <td>{{ tc.judge_name }}</td>
+    <td>{{ time_tag(tc.judge_time) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock content %}

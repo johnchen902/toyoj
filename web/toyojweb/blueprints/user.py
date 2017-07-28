@@ -11,9 +11,9 @@ def showall():
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            cur.execute('''
-                SELECT id, username, register_time
-                FROM users
+            cur.execute(
+            ''' SELECT ''' + ', '.join(User._fields) +
+            ''' FROM users
                 ORDER BY id
             ''')
             users = [User(*user) for user in cur]
@@ -25,9 +25,9 @@ def show(user_id):
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            cur.execute('''
-                SELECT id, username, register_time
-                FROM users
+            cur.execute(
+            ''' SELECT ''' + ', '.join(User._fields) +
+            ''' FROM users
                 WHERE id = %s
             ''', (user_id,))
             user = cur.fetchone()

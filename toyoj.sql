@@ -137,63 +137,48 @@ FROM submissions s JOIN testcases t USING (problem_id)
     LEFT JOIN result_judges j ON (s.id = j.submission_id AND t.id = j.testcase_id)
     LEFT JOIN results r ON (s.id = r.submission_id AND t.id = r.testcase_id);
 
-CREATE VIEW subtask_results_view AS WITH subtask_results_view_0 AS (SELECT
-    s.id AS submission_id,
-    k.id AS subtask_id,
-    bool_and(r.accepted IS TRUE) AS accepted,
-    bool_or(r.accepted IS FALSE) AS rejected,
-    max(r.time) AS time,
-    max(r.memory) AS memory,
-    k.score AS fullscore,
-    max(r.judge_time) AS judge_time
-FROM submissions s JOIN subtasks k USING (problem_id)
-    JOIN subtask_testcases kt ON (k.id = kt.subtask_id)
-    LEFT JOIN results r ON (s.id = r.submission_id AND kt.testcase_id = r.testcase_id)
-GROUP BY s.id, k.id)
-SELECT
-    submission_id,
-    subtask_id,
-    accepted,
-    rejected,
-    time,
-    memory,
-    CASE WHEN accepted THEN fullscore ELSE 0 END AS minscore,
-    CASE WHEN rejected THEN 0 ELSE fullscore END AS maxscore,
-    fullscore,
-    judge_time
-FROM subtask_results_view_0;
-
-CREATE VIEW submission_results_view AS SELECT
-    s.id AS submission_id,
-    x.accepted,
-    x.rejected,
-    x.time,
-    x.memory,
-    x.judge_time,
-    y.minscore,
-    y.maxscore,
-    y.fullscore
-FROM submissions s
-    LEFT JOIN (
-        SELECT
-            r.submission_id,
-            bool_and(r.accepted IS TRUE) AS accepted,
-            bool_or(r.accepted IS FALSE) AS rejected,
-            max(r.time) AS time,
-            max(r.memory) AS memory,
-            max(r.judge_time) AS judge_time
-        FROM results_view r
-        GROUP BY r.submission_id
-    ) x ON (s.id = x.submission_id)
-    LEFT JOIN (
-        SELECT
-            k.submission_id,
-            sum(k.minscore) AS minscore,
-            sum(k.maxscore) AS maxscore,
-            sum(k.fullscore) AS fullscore
-        FROM subtask_results_view k
-        GROUP BY k.submission_id
-    ) y ON (s.id = y.submission_id);
+CREATE VIEW submissions_view AS
+SELECT s.id,
+       s.problem_id,
+       s.submitter_id,
+       s.language_name,
+       s.code,
+       s.submit_time,
+       p.title as problem_title,
+       u.username as submitter_username,
+       t.count AS testcases_count,
+       r.count AS results_count,
+       r.time,
+       r.memory,
+       r.judge_time,
+       rr.testcase_id AS verdict_id,
+       rr.verdict AS verdict
+FROM submissions AS s
+INNER JOIN problems AS p ON (s.problem_id = p.id)
+INNER JOIN users AS u ON (s.submitter_id = u.id)
+LEFT JOIN (
+    SELECT problem_id,
+           COUNT(*) AS count
+    FROM testcases
+    GROUP BY problem_id
+) AS t USING (problem_id)
+LEFT JOIN (
+    SELECT submission_id,
+           COUNT(*) AS count,
+           max(time) AS time,
+           max(memory) AS memory,
+           max(judge_time) AS judge_time
+    FROM results
+    GROUP BY submission_id
+) AS r ON (s.id = r.submission_id)
+LEFT JOIN (
+    SELECT DISTINCT ON (submission_id)
+           submission_id,
+           testcase_id,
+           verdict
+    FROM results
+    WHERE NOT accepted
+) AS rr ON (s.id = rr.submission_id);
 
 CREATE FUNCTION notify_new_judge_task() RETURNS trigger AS $$
 BEGIN
@@ -232,8 +217,7 @@ GRANT SELECT ON result_judges TO toyojweb;
 GRANT SELECT ON results TO toyojweb;
 GRANT SELECT, UPDATE ON subtask_testcases_view TO toyojweb;
 GRANT SELECT ON results_view TO toyojweb;
-GRANT SELECT ON subtask_results_view TO toyojweb;
-GRANT SELECT ON submission_results_view TO toyojweb;
+GRANT SELECT ON submission_view TO toyojweb;
 GRANT USAGE ON users_id_seq TO toyojweb;
 GRANT USAGE ON problems_id_seq TO toyojweb;
 GRANT USAGE ON subtasks_id_seq TO toyojweb;
