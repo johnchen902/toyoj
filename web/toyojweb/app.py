@@ -1,7 +1,11 @@
 from flask import Flask, url_for, render_template
+from toyojweb.blueprints import user
+
 app = Flask(__name__)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
+
+app.register_blueprint(user.blueprint, url_prefix = '/users')
 
 @app.route('/')
 def index():

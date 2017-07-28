@@ -1,0 +1,7 @@
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
+
+{% macro time_tag(t) %}
+{% if t is not none %}
+<time datetime="{{ t.isoformat() }}">{{ t.strftime('%Y-%m-%d %H:%M:%S') }}</time>{##}
+{% endif %}
+{% endmacro %}
