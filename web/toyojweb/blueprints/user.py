@@ -11,12 +11,8 @@ def showall():
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            cur.execute(
-            ''' SELECT ''' + ', '.join(User._fields) +
-            ''' FROM users
-                ORDER BY id
-            ''')
-            users = [User(*user) for user in cur]
+            users = database.select(cur, 'id username register_time',
+                    'FROM users ORDER BY id')
 
     return render_template('user-showall.html', users = users)
 
@@ -25,14 +21,9 @@ def show(user_id):
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            cur.execute(
-            ''' SELECT ''' + ', '.join(User._fields) +
-            ''' FROM users
-                WHERE id = %s
-            ''', (user_id,))
-            user = cur.fetchone()
-            if user is None:
+            user = database.select_one(cur, 'id username register_time',
+                    'FROM users WHERE id = %s', (user_id,))
+            if not user:
                 abort(404)
-            user = User(*user)
 
     return render_template('user-show.html', user = user)
