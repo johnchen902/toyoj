@@ -1,47 +1,45 @@
-{# vim: se ft=html.twig sw=2 ts=2 sts=2: #}
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
 <!DOCTYPE html>
 <html>
-<head>
-{% block head %}
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Toy Online Judge{% endblock %}</title>
-{% for stylesheet in container.stylesheets.listAll %}
-  <link rel="{% if not stylesheet.preferred %}alternate {% endif %}stylesheet" href="{{ stylesheet.path }}" title="{{ stylesheet.title }}">
-{% endfor %}
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
-  <script async src="/toyoj.js"></script>
-{% endblock head %}
-</head>
-<body>
-  <h1>Toy Online Judge</h1>
-  <nav class="nav1">
-{% block nav %}
-    <a href="{{ path_for('index') }}">Index</a>
-    <a href="{{ path_for('problem-list') }}">Problems</a>
-    <a href="{{ path_for('submission-list') }}">Submissions</a>
-    <a href="{{ path_for('user-list') }}">Users</a>
-{% if container.login.loggedIn %}
-    <a href="{{ path_for('user', { 'user_id': container.login.userId }) }}">Profile</a>
-    <a href="{{ path_for('logout') }}">Log out</a>
-{% else %}
-    <a href="{{ path_for('login') }}">Log in</a>
-    <a href="{{ path_for('signup') }}">Sign up</a>
-{% endif %}
-{% endblock nav %}
-  </nav>
-{% for message in container.messages.listAllOnce %}
-{% include "components/message.html" %}
-{% endfor %}
-  <h2>{% block h2 %}Please override <code>block h2</code>{% endblock %}</h2>
-  <nav class="nav2">
-{% block nav2 %}
-{% endblock nav2 %}
-  </nav>
-{% block content %}
-  Please override <code>block content</code>.
-{% endblock content %}
-  <footer>
-    The source code is available on <a href="https://github.com/johnchen902/toyoj">GitHub</a>.
-  </footer>
-</body>
+  <head>
+    {% block head %}
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Toy Online Judge{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='default.css') }}" title="Default Style">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}" sizes="any">
+    <script async src="{{ url_for('static', filename='toyoj.js') }}"></script>
+    {% endblock head %}
+  </head>
+  <body>
+    <h1>Toy Online Judge</h1>
+    <nav class="nav1">
+      {% block nav %}
+      <a href="{{ url_for('index') }}">Index</a>
+      <a href="{# url_for('problem_list') #}">Problems</a>
+      <a href="{# url_for('submission_list') #}">Submissions</a>
+      <a href="{# url_for('user_list') #}">Users</a>
+      {% if False %}
+      <a href="{# url_for('user', user_id=container.login.userId) #}">Profile</a>
+      <a href="{# url_for('logout') #}">Log out</a>
+      {% else %}
+      <a href="{# url_for('login') #}">Log in</a>
+      <a href="{# url_for('signup') #}">Sign up</a>
+      {% endif %}
+      {% endblock nav %}
+    </nav>
+    {% for message in [] %}
+    {% include "components/message.html" %}
+    {% endfor %}
+    <h2>{% block h2 %}Please override <code>block h2</code>{% endblock %}</h2>
+    <nav class="nav2">
+      {% block nav2 %}
+      {% endblock nav2 %}
+    </nav>
+    {% block content %}
+    Please override <code>block content</code>.
+    {% endblock content %}
+    <footer>
+      The source code is available on <a href="https://github.com/johnchen902/toyoj">GitHub</a>.
+    </footer>
+  </body>
 </html>
