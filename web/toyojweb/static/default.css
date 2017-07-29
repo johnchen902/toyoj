@@ -3,3 +3,4 @@ footer { margin-top: 1em; }
 a, a:visited { color: inherit; }
 .message { margin: 1em auto; padding: 1em; border: thin solid; }
 textarea { width: 100%; box-sizing: border-box; }
+.problem-statement { border-left: 1px solid black; padding-left: 0.5em; }

@@ -21,7 +21,9 @@
 {% endblock nav2 %}
 
 {% block content %}
+<div class="problem-statement">
 {{ problem.statement | markdown | safe }}
+</div>
 <h3>Creation time</h3>
 {{ time_tag(problem.create_time) }}
 <h3>Manager</h3>
