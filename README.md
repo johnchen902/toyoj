@@ -20,7 +20,9 @@ I'm using Arch Linux, with kernel *linux-userns* from AUR.
       * If you prefer password, modify the dsn in step 3-8
 2. Setup Web Server
    1. Install Nginx (*nginx-mainline*), Python (*python*), uWSGI (*uwsgi*),
-      its Python plugin (*uwsgi-plugin-python*) and Flask (*python-flask*) (???)
+      its Python plugin (*uwsgi-plugin-python*), Flask (*python-flask*),
+      Psycopg (*python-psycopg2*), Python-Markdown (*python-markdown*) and
+      Bleach (*python-bleach*)
    2. Copy web/toyoj/ to /srv/http/toyoj (???)
       * Remember to edit config (???)
    3. Copy web/uswgi.ini to /etc/uwsgi/toyoj.ini (???)

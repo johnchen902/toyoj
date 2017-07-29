@@ -15,7 +15,7 @@
     <nav class="nav1">
       {% block nav %}
       <a href="{{ url_for('index') }}">Index</a>
-      <a href="{# url_for('problem_list') #}">Problems</a>
+      <a href="{{ url_for('problem.showall') }}">Problems</a>
       <a href="{{ url_for('submission.showall') }}">Submissions</a>
       <a href="{{ url_for('user.showall') }}">Users</a>
       {% if False %}

@@ -24,15 +24,8 @@ CREATE TABLE problems (
     id SERIAL PRIMARY KEY,
     title VARCHAR(128) NOT NULL,
     statement TEXT NOT NULL,
-    ready BOOLEAN NOT NULL,
     manager_id INTEGER NOT NULL REFERENCES users,
     create_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-);
-CREATE TABLE subtasks (
-    id SERIAL PRIMARY KEY,
-    problem_id INTEGER NOT NULL REFERENCES problems ON DELETE CASCADE,
-    score INTEGER NOT NULL CHECK (score > 0),
-    UNIQUE (id, problem_id)
 );
 CREATE TABLE testcases (
     id SERIAL PRIMARY KEY,
@@ -43,14 +36,6 @@ CREATE TABLE testcases (
     input TEXT NOT NULL,
     output TEXT NOT NULL,
     UNIQUE (id, problem_id)
-);
-CREATE TABLE subtask_testcases (
-    subtask_id INTEGER NOT NULL REFERENCES subtasks ON DELETE CASCADE,
-    testcase_id INTEGER NOT NULL REFERENCES testcases ON DELETE CASCADE,
-    problem_id INTEGER NOT NULL REFERENCES problems ON DELETE CASCADE,
-    PRIMARY KEY (subtask_id, testcase_id),
-    FOREIGN KEY (subtask_id, problem_id) REFERENCES subtasks (id, problem_id) ON DELETE CASCADE,
-    FOREIGN KEY (testcase_id, problem_id) REFERENCES testcases (id, problem_id) ON DELETE CASCADE
 );
 CREATE TABLE submissions (
     id SERIAL PRIMARY KEY,
@@ -84,42 +69,15 @@ CREATE TABLE results (
     FOREIGN KEY (testcase_id, problem_id) REFERENCES testcases (id, problem_id) ON DELETE CASCADE
 );
 
-CREATE VIEW subtask_testcases_view AS SELECT
-    k.problem_id,
-    k.id AS subtask_id,
-    t.id AS testcase_id,
-    (EXISTS (SELECT 1 FROM subtask_testcases WHERE subtask_id = k.id AND testcase_id = t.id)) AS "exists"
-FROM subtasks k JOIN testcases t USING (problem_id);
-
-CREATE FUNCTION subtask_testcases_view_update() RETURNS trigger AS $$
-BEGIN
-    IF OLD.problem_id != NEW.problem_id THEN
-        RAISE EXCEPTION 'problem_id cannot be modified';
-    END IF;
-    IF OLD.subtask_id != NEW.subtask_id THEN
-        RAISE EXCEPTION 'subtask_id cannot be modified';
-    END IF;
-    IF OLD.testcase_id != NEW.testcase_id THEN
-        RAISE EXCEPTION 'testcase_id cannot be modified';
-    END IF;
-    IF OLD."exists" != NEW."exists" THEN
-        IF NEW."exists" THEN
-            INSERT INTO subtask_testcases (problem_id, subtask_id, testcase_id)
-                VALUES (NEW.problem_id, NEW.subtask_id, NEW.testcase_id);
-        ELSE
-            DELETE FROM subtask_testcases
-                WHERE problem_id = NEW.problem_id AND
-                    subtask_id = NEW.subtask_id AND
-                    testcase_id = NEW.testcase_id;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER subtask_testcases_view_update_trigger
-    INSTEAD OF UPDATE ON subtask_testcases_view
-    FOR EACH ROW EXECUTE PROCEDURE subtask_testcases_view_update();
+CREATE VIEW problems_view AS
+SELECT p.id,
+       p.title,
+       p.statement,
+       p.manager_id,
+       p.create_time,
+       u.username AS manager_username
+FROM problems p
+INNER JOIN users u ON (p.manager_id = u.id);
 
 CREATE VIEW results_view AS SELECT
     s.id AS submission_id,
@@ -209,18 +167,15 @@ GRANT SELECT, INSERT ON users TO toyojweb;
 GRANT SELECT ON user_permissions TO toyojweb;
 GRANT SELECT, INSERT, UPDATE ON password_logins TO toyojweb;
 GRANT SELECT, INSERT, UPDATE ON problems TO toyojweb;
-GRANT SELECT, INSERT, DELETE, UPDATE ON subtasks TO toyojweb;
 GRANT SELECT, INSERT, DELETE, UPDATE ON testcases TO toyojweb;
-GRANT SELECT, INSERT, DELETE ON subtask_testcases TO toyojweb;
 GRANT SELECT, INSERT ON submissions TO toyojweb;
 GRANT SELECT ON result_judges TO toyojweb;
 GRANT SELECT ON results TO toyojweb;
-GRANT SELECT, UPDATE ON subtask_testcases_view TO toyojweb;
+GRANT SELECT ON problems_view TO toyojweb;
 GRANT SELECT ON results_view TO toyojweb;
 GRANT SELECT ON submission_view TO toyojweb;
 GRANT USAGE ON users_id_seq TO toyojweb;
 GRANT USAGE ON problems_id_seq TO toyojweb;
-GRANT USAGE ON subtasks_id_seq TO toyojweb;
 GRANT USAGE ON testcases_id_seq TO toyojweb;
 GRANT USAGE ON submissions_id_seq TO toyojweb;
 

@@ -1,0 +1,69 @@
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% from 'utility.html' import time_tag %}
+
+{% block title %}{{ problem.title }} - {{ super() }}{% endblock %}
+
+{% block head %}
+{{ super() }}{##}
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML" integrity="sha256-SDRP1VVYu+tgAGKhddBSl5+ezofHKZeI+OzxakbIe/Y=" crossorigin="anonymous"></script>
+{% endblock head %}
+
+{% block h2 %}{{ problem.title }}{% endblock h2 %}
+
+{% block nav2 %}
+{{ super() }}{##}
+{% if False %}
+<a href="{{ url_for('problem.edit', problem_id = problem.id) }}">Edit</a>
+{% else %}
+<a href="{{ url_for('problem.edit', problem_id = problem.id) }}">View Source</a>
+{% endif %}
+{% endblock nav2 %}
+
+{% block content %}
+{{ problem.statement | markdown | safe }}
+<h3>Creation time</h3>
+{{ time_tag(problem.create_time) }}
+<h3>Manager</h3>
+<a href="{{ url_for('user.show', user_id = problem.manager_id) }}">{{ problem.manager_username }}</a>
+<h3 id="testcases">Test Cases</h3>
+<table>
+  <tr>
+    <th>ID</th>
+    <th>Time</th>
+    <th>Memory</th>
+    <th>Checker</th>
+  </tr>
+  {% for testcase in problem.testcases %}
+  <tr>
+    <td><a href="{# url_for('testcase.show', problem_id = problem.id, testcase_id = testcase.id) #}">{{ testcase.id }}</a></td>
+    <td>{{ testcase.time_limit }} ms</td>
+    <td>{{ testcase.memory_limit }} KiB</td>
+    <td>{{ testcase.checker_name }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% if False %}
+<h3>Submission Area</h3>
+{% if problem.cansubmit %}
+<form method="post">
+  <input type="hidden" name="language" value="C++14">
+  <div>
+    Language:
+    <select name="language" required>
+      <option selected disabled hidden></option>
+      {% for language in languages %}
+      <option value="{{ language.name }}">{{ language.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <textarea name="code" cols="80" rows="22" wrap="off" required></textarea>
+  </div>
+  <div>
+    <button type="submit">Submit</button>
+  </div>
+</form>
+{% endif %}
+{% endif %}
+{% endblock content %}

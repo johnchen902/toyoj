@@ -1,0 +1,33 @@
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% from 'utility.html' import time_tag %}
+
+{% block title %}Problems - {{ super() }}{% endblock %}
+
+{% block h2 %}Problems{% endblock %}
+
+{% block nav2 %}
+{{ super() }}{##}
+{% if False %}
+<a href="{{ url_for('problem.new') }}">New Problem</a>
+{% endif %}
+{% endblock nav2 %}
+
+{% block content %}
+<table>
+  <tr>
+    <th>ID</th>
+    <th>Title</th>
+    <th>Create Time</th>
+    <th>Manager</th>
+  </tr>
+  {% for problem in problems %}
+  <tr>
+    <td>{{ problem.id }}</td>
+    <td><a href="{{ url_for('problem.show', problem_id = problem.id) }}">{{ problem.title }}</a></td>
+    <td>{{ time_tag(problem.create_time) }}</td>
+    <td><a href="{{ url_for('user.show', user_id = problem.manager_id) }}">{{ problem.manager_username }}</a></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock content %}

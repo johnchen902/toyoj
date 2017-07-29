@@ -1,0 +1,5 @@
+# For whoever want to live in virtualenv
+Flask==0.12.2.dev0
+Markdown==2.6.8
+bleach==2.0.0
+psycopg2==2.7.2
