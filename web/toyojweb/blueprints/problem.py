@@ -9,10 +9,14 @@ def showall():
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            problems = database.select(cur,
-            ''' id title manager_id create_time
-                manager_username ''',
-            ''' FROM problems_view ORDER BY id ''')
+            problems = database.fetch_list(cur,
+            ''' SELECT
+                    p.id, p.title, p.manager_id, p.create_time,
+                    u.username AS manager_username
+                FROM problems p
+                JOIN users u ON (p.manager_id = u.id)
+                ORDER BY id
+            ''')
 
     return render_template('problem-showall.html', problems = problems)
 
@@ -21,18 +25,24 @@ def show(problem_id):
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            problem = database.select_one(cur,
-            ''' id title statement manager_id create_time
-                manager_username ''',
-            ''' FROM problems_view WHERE id = %s ''',
-                (problem_id,))
+            problem = database.fetch_one(cur,
+            ''' SELECT
+                    p.id, p.title, p.manager_id, p.create_time, p.statement,
+                    u.username AS manager_username
+                FROM problems p
+                JOIN users u ON (p.manager_id = u.id)
+                WHERE p.id = %s
+            ''', (problem_id,))
             if not problem:
                 abort(404)
 
-            problem['testcases'] = database.select(cur,
-                'id time_limit memory_limit checker_name',
-                'FROM testcases WHERE problem_id = %s',
-                (problem_id,))
+            problem['testcases'] = database.fetch_list(cur,
+            ''' SELECT
+                    apparent_id, time_limit, memory_limit, checker_name
+                FROM testcases
+                WHERE problem_id = %s
+                ORDER BY apparent_id
+            ''', (problem_id,))
 
     return render_template('problem-show.html', problem = problem)
 
@@ -41,11 +51,14 @@ def edit(problem_id):
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            problem = database.select_one(cur,
-            ''' id title statement manager_id create_time
-                manager_username ''',
-            ''' FROM problems_view WHERE id = %s ''',
-                (problem_id,))
+            problem = database.fetch_one(cur,
+            ''' SELECT
+                    p.id, p.title, p.manager_id, p.create_time, p.statement,
+                    u.username AS manager_username
+                FROM problems p
+                JOIN users u ON (p.manager_id = u.id)
+                WHERE p.id = %s
+            ''', (problem_id,))
             if not problem:
                 abort(404)
 

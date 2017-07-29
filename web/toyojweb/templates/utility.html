@@ -5,3 +5,15 @@
 <time datetime="{{ t.isoformat() }}">{{ t.strftime('%Y-%m-%d %H:%M:%S') }}</time>{##}
 {% endif %}
 {% endmacro %}
+
+{% macro time_duration(t) %}
+{% if t is not none %}
+{{ '%g ms' % (t / 1000000) }}{##}
+{% endif %}
+{% endmacro %}
+
+{% macro memory_size(m) %}
+{% if m is not none %}
+{{ '%d KiB' % (m // 1024) }}{##}
+{% endif %}
+{% endmacro %}

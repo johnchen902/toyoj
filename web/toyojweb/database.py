@@ -14,30 +14,27 @@ def close(exception):
     if conn is not None:
         conn.close()
 
-def select_iter(cursor, fields, tail, vars = None):
-    """ Execute SELECT <fields> <tail> on cursor.
+def fetch_iter(cursor, query, vars = None):
+    """ Execute query on cursor.
         Returns an iterator of OrderedDict([(fieldname : value)...])
         Watchout for closed cursor!
     """
-    if isinstance(fields, str):
-        fields = fields.replace(',', ' ').split()
-    cursor.execute('SELECT ' + ', '.join(map(str, fields)) + ' ' + tail, vars)
-    def to_dict(result):
-        return OrderedDict(zip(fields, result))
-    return (to_dict(result) for result in cursor)
+    cursor.execute(query, vars)
+    fields = [desc.name for desc in cursor.description]
+    return (OrderedDict(zip(fields, result)) for result in cursor)
 
-def select(cursor, fields, tail, vars = None):
-    """ Execute SELECT <fields> <tail> on cursor.
+def fetch_list(cursor, query, vars = None):
+    """ Execute query on cursor.
         Returns a list of OrderedDict([(fieldname : value)...])
     """
-    return list(select_iter(cursor, fields, tail, vars))
+    return list(fetch_iter(cursor, query, vars))
 
-def select_one(cursor, fields, tail, vars = None):
-    """ Execute SELECT <fields> <tail> on cursor.
+def fetch_one(cursor, query, vars = None):
+    """ Execute query on cursor.
         Returns a single OrderedDict([(fieldname : value)...]) or None
         Asserts only one row is found.
     """
-    i = select_iter(cursor, fields, tail, vars)
+    i = fetch_iter(cursor, query, vars)
     result = next(i, None)
-    assert next(i, None) is None, 'select_one found more than one row'
+    assert next(i, None) is None, 'fetch_one found more than one row'
     return result

@@ -14,6 +14,7 @@ CREATE TABLE users (
 CREATE TABLE user_permissions (
     user_id INTEGER NOT NULL REFERENCES users ON DELETE CASCADE,
     permission_name VARCHAR(32) NOT NULL,
+    expire_time TIMESTAMP WITH TIME ZONE NOT NULL,
     PRIMARY KEY (user_id, permission_name)
 );
 CREATE TABLE password_logins (
@@ -30,12 +31,16 @@ CREATE TABLE problems (
 CREATE TABLE testcases (
     id SERIAL PRIMARY KEY,
     problem_id INTEGER NOT NULL REFERENCES problems ON DELETE CASCADE,
-    time_limit INTEGER NOT NULL CHECK (time_limit > 0),
-    memory_limit INTEGER NOT NULL CHECK (memory_limit > 0),
+    apparent_id INTEGER NOT NULL,
+    time_limit BIGINT NOT NULL
+        CONSTRAINT positive_time CHECK (time_limit > 0),
+    memory_limit BIGINT NOT NULL
+        CONSTRAINT positive_memory CHECK (memory_limit > 0),
     checker_name VARCHAR(32) NOT NULL REFERENCES checkers,
     input TEXT NOT NULL,
     output TEXT NOT NULL,
-    UNIQUE (id, problem_id)
+    UNIQUE (id, problem_id),
+    UNIQUE (problem_id, apparent_id)
 );
 CREATE TABLE submissions (
     id SERIAL PRIMARY KEY,
@@ -60,28 +65,20 @@ CREATE TABLE results (
     testcase_id INTEGER NOT NULL REFERENCES testcases ON DELETE CASCADE,
     problem_id INTEGER NOT NULL REFERENCES problems ON DELETE CASCADE,
     accepted BOOLEAN NOT NULL,
-    time INTEGER NULL CHECK (time >= 0), -- should be null if the program is not ran at all (e.g. CE)
-    memory INTEGER NULL CHECK (memory >= 0), -- same as time
+    time BIGINT NULL CHECK (time >= 0), -- should be null if the program is not ran at all (e.g. CE)
+    memory BIGINT NULL CHECK (memory >= 0), -- same as time
     verdict VARCHAR(3) NOT NULL,
     judge_time TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     PRIMARY KEY (submission_id, testcase_id),
+    -- XXX should I reference result_judges instead?
     FOREIGN KEY (submission_id, problem_id) REFERENCES submissions (id, problem_id) ON DELETE CASCADE,
     FOREIGN KEY (testcase_id, problem_id) REFERENCES testcases (id, problem_id) ON DELETE CASCADE
 );
 
-CREATE VIEW problems_view AS
-SELECT p.id,
-       p.title,
-       p.statement,
-       p.manager_id,
-       p.create_time,
-       u.username AS manager_username
-FROM problems p
-INNER JOIN users u ON (p.manager_id = u.id);
-
 CREATE VIEW results_view AS SELECT
     s.id AS submission_id,
     t.id AS testcase_id,
+    t.apparent_id AS testcase_apparent_id,
     s.problem_id AS problem_id,
     r.accepted,
     r.verdict,
@@ -110,6 +107,7 @@ SELECT s.id,
        r.memory,
        r.judge_time,
        rr.testcase_id AS verdict_id,
+       rr.apparent_id AS verdict_apparent_id,
        rr.verdict AS verdict
 FROM submissions AS s
 INNER JOIN problems AS p ON (s.problem_id = p.id)
@@ -130,12 +128,15 @@ LEFT JOIN (
     GROUP BY submission_id
 ) AS r ON (s.id = r.submission_id)
 LEFT JOIN (
-    SELECT DISTINCT ON (submission_id)
-           submission_id,
-           testcase_id,
-           verdict
-    FROM results
-    WHERE NOT accepted
+    SELECT DISTINCT ON (r.submission_id)
+           r.submission_id,
+           r.testcase_id,
+           r.verdict,
+           t.apparent_id
+    FROM results AS r
+    JOIN testcases AS t ON (r.testcase_id = t.id)
+    WHERE NOT r.accepted
+    ORDER BY r.submission_id, t.apparent_id
 ) AS rr ON (s.id = rr.submission_id);
 
 CREATE FUNCTION notify_new_judge_task() RETURNS trigger AS $$
@@ -171,9 +172,8 @@ GRANT SELECT, INSERT, DELETE, UPDATE ON testcases TO toyojweb;
 GRANT SELECT, INSERT ON submissions TO toyojweb;
 GRANT SELECT ON result_judges TO toyojweb;
 GRANT SELECT ON results TO toyojweb;
-GRANT SELECT ON problems_view TO toyojweb;
 GRANT SELECT ON results_view TO toyojweb;
-GRANT SELECT ON submission_view TO toyojweb;
+GRANT SELECT ON submissions_view TO toyojweb;
 GRANT USAGE ON users_id_seq TO toyojweb;
 GRANT USAGE ON problems_id_seq TO toyojweb;
 GRANT USAGE ON testcases_id_seq TO toyojweb;

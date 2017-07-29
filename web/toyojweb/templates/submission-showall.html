@@ -1,6 +1,6 @@
 {# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% from 'utility.html' import time_tag %}
+{% from 'utility.html' import time_tag, time_duration, memory_size %}
 
 {% block title %}Submissions - {{ super() }}{% endblock %}
 
@@ -8,9 +8,9 @@
 
 {% macro verdict_of(s) %}
 {% if s.verdict is not none %}
-{{ s.verdict }} on test {{ s.verdict_id }}{##}
-{% elif s.judge_progress != s.testcase_count %}
-Judging {{ s.judge_progress }} / {{ s.testcase_count }}{##}
+{{ s.verdict }} on test {{ s.verdict_apparent_id }}{##}
+{% elif s.results_count != s.testcases_count %}
+Judging&hellip; {{ s.results_count or 0 }} / {{ s.testcases_count }}{##}
 {% else %}
 AC{##}
 {% endif %}
@@ -35,8 +35,8 @@ AC{##}
     <td><a href="{# url_for('problem', problem_id = s.problem_id) #}">{{ s.problem_title }}</a></td>
     <td><a href="{{ url_for('user.show', user_id = s.submitter_id) }}">{{ s.submitter_username }}</a></td>
     <td>{{ verdict_of(s) }}</td>
-    <td>{{ '%d ms' % s.time if s.time is not none }}</td>
-    <td>{{ '%d KiB' % s.memory if s.memory is not none }}</td>
+    <td>{{ time_duration(s.time) }}</td>
+    <td>{{ memory_size(s.memory) }}</td>
     <td>{{ s.language_name }}</td>
     <td>{{ time_tag(s.submit_time) }}</td>
     <td>{{ time_tag(s.judge_time) }}</td>

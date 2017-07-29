@@ -4,15 +4,17 @@ from toyojweb import database
 
 blueprint = Blueprint('user', __name__)
 
-User = namedtuple('User', 'id username register_time')
-
 @blueprint.route('/')
 def showall():
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            users = database.select(cur, 'id username register_time',
-                    'FROM users ORDER BY id')
+            users = database.fetch_list(cur,
+            ''' SELECT
+                    id, username, register_time
+                FROM users
+                ORDER BY id
+            ''')
 
     return render_template('user-showall.html', users = users)
 
@@ -21,8 +23,12 @@ def show(user_id):
     with database.connect() as conn:
         conn.readonly = True
         with conn.cursor() as cur:
-            user = database.select_one(cur, 'id username register_time',
-                    'FROM users WHERE id = %s', (user_id,))
+            user = database.fetch_one(cur,
+            ''' SELECT
+                    id, username, register_time
+                FROM users
+                WHERE id = %s
+            ''', (user_id,))
             if not user:
                 abort(404)
 

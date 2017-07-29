@@ -1,17 +1,26 @@
 from flask import Flask, url_for, render_template
 from toyojweb import database, markdown
-from toyojweb.blueprints import user, submission, problem
+from toyojweb.blueprints import user, submission, problem, testcase
 
 app = Flask(__name__)
-app.jinja_env.trim_blocks = True
-app.jinja_env.lstrip_blocks = True
-app.jinja_env.filters['markdown'] = markdown.safe_markdown
 
-app.register_blueprint(problem.blueprint, url_prefix = '/problems')
-app.register_blueprint(submission.blueprint, url_prefix = '/submissions')
-app.register_blueprint(user.blueprint, url_prefix = '/users')
+def init_app(app):
+    app.jinja_env.trim_blocks = True
+    app.jinja_env.lstrip_blocks = True
+    app.jinja_env.filters['markdown'] = markdown.safe_markdown
 
-app.teardown_appcontext(database.close)
+    blueprints = [
+        (problem.blueprint, '/problems'),
+        (testcase.blueprint, '/problems/<int:problem_id>/testcases'),
+        (submission.blueprint, '/submissions'),
+        (user.blueprint, '/users'),
+    ]
+    for blueprint, url_prefix in blueprints:
+        app.register_blueprint(blueprint, url_prefix = url_prefix)
+
+    app.teardown_appcontext(database.close)
+
+init_app(app)
 
 @app.route('/')
 def index():

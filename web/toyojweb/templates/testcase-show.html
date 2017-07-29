@@ -1,0 +1,33 @@
+{# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
+{% extends "base.html" %}
+{% from 'utility.html' import time_duration, memory_size %}
+
+{% block title %}Test Case #{{ testcase.apparent_id }} of {{ testcase.problem_title }} - {{ super() }}{% endblock %}
+
+{% block h2 %}Test Case #{{ testcase.apparent_id }} of {{ testcase.problem_title }}{% endblock %}
+
+{% block nav2 %}
+{{ super() }}{##}
+<a href="{{ url_for('problem.show', problem_id = testcase.problem_id) }}">Show Problem</a></dd>
+{% if False %}
+<a href="{{ url_for('testcase.edit', problem_id = testcase.problem_id, testcase_id = testcase.apparent_id) }}">Edit</a>
+{% endif %}
+{% endblock nav2 %}
+
+{% block content %}
+<h3>General</h3>
+<dl>
+  <dt>Real ID</dt>
+  <dd>{{ testcase.id }}</dd>
+  <dt>Time Limit</dt>
+  <dd>{{ time_duration(testcase.time_limit) }}</dd>
+  <dt>Memory Limit</dt>
+  <dd>{{ memory_size(testcase.memory_limit) }}</dd>
+  <dt>Checker</dt>
+  <dd>{{ testcase.checker_name }}</dd>
+</dl>
+<h3>Input</h3>
+<pre><code>{{ testcase.input }}</code></pre>
+<h3>Output</h3>
+<pre><code>{{ testcase.output }}</code></pre>
+{% endblock content %}

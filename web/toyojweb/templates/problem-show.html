@@ -1,6 +1,6 @@
 {# vim: se ft=jinja.html sw=2 ts=2 sts=2: #}
 {% extends "base.html" %}
-{% from 'utility.html' import time_tag %}
+{% from 'utility.html' import time_tag, time_duration, memory_size %}
 
 {% block title %}{{ problem.title }} - {{ super() }}{% endblock %}
 
@@ -16,7 +16,7 @@
 {% if False %}
 <a href="{{ url_for('problem.edit', problem_id = problem.id) }}">Edit</a>
 {% else %}
-<a href="{{ url_for('problem.edit', problem_id = problem.id) }}">View Source</a>
+<a href="{{ url_for('problem.edit', problem_id = problem.id) }}">Show Source</a>
 {% endif %}
 {% endblock nav2 %}
 
@@ -38,9 +38,9 @@
   </tr>
   {% for testcase in problem.testcases %}
   <tr>
-    <td><a href="{# url_for('testcase.show', problem_id = problem.id, testcase_id = testcase.id) #}">{{ testcase.id }}</a></td>
-    <td>{{ testcase.time_limit }} ms</td>
-    <td>{{ testcase.memory_limit }} KiB</td>
+    <td><a href="{{ url_for('testcase.show', problem_id = problem.id, testcase_id = testcase.apparent_id) }}">{{ testcase.apparent_id }}</a></td>
+    <td>{{ time_duration(testcase.time_limit) }}</td>
+    <td>{{ memory_size(testcase.memory_limit) }}</td>
     <td>{{ testcase.checker_name }}</td>
   </tr>
   {% endfor %}

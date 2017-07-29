@@ -14,12 +14,12 @@ class Language:
         result = await self._execute(sandbox,
                 stdin = "/tmp/input.txt",
                 stdout = "/tmp/output.txt",
-                user_time = "%dms" % task.testcase.time_limit,
-                wall_time = "%dms" % (2 * task.testcase.time_limit),
-                memory = "%dk" % task.testcase.memory_limit,
+                user_time = "%d" % task.testcase.time_limit,
+                wall_time = "%d" % (2 * task.testcase.time_limit),
+                memory = "%d" % task.testcase.memory_limit,
                 pids = 20)
-        task.time = result["cpuacct.usage_user"] // 10 ** 6
-        task.memory = result["memory.memsw.max_usage_in_bytes"] // 1024
+        task.time = result["cpuacct.usage_user"]
+        task.memory = result["memory.memsw.max_usage_in_bytes"]
         task.verdict = self._get_verdict(result, task.testcase)
         if task.verdict is not None:
             return
@@ -48,12 +48,12 @@ class Language:
     def _get_verdict(self, result, testcase):
         time = result["cpuacct.usage_user"]
         memory = result["memory.memsw.max_usage_in_bytes"]
-        if time > testcase.time_limit * 10 ** 6:
+        if time > testcase.time_limit:
             return "TLE"
         if result["returncode"]:
             if result["time_killed"]:
                 return "TLE"
-            if memory >= testcase.memory_limit * 1024:
+            if memory >= testcase.memory_limit:
                 return "MLE"
             return "RE"
         return None
