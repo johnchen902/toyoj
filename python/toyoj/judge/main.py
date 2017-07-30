@@ -113,7 +113,7 @@ parser = configargparse.ArgumentParser()
 parser.add_argument("--config", is_config_file = True,
         help = "Config file path (default: %(default)s)")
 parser.add_argument("--dsn",
-        default = "postgres://@/toyoj",
+        default = "postgres:///toyoj",
         help = "The data source name as defined by asyncpg (default: %(default)s)")
 parser.add_argument("--name",
         default = platform.node()[:32] or "unnamed-judge",
