@@ -8,16 +8,16 @@ import logging.config
 import platform
 import signal
 
-from toyojjudge.taskfetcher import TaskFetcher
-from toyojjudge.taskrunner import TaskRunner
-from toyojjudge.taskwriter import TaskWriter
-import toyojjudge.sandbox as sandbox
+from .taskfetcher import TaskFetcher
+from .taskrunner import TaskRunner
+from .taskwriter import TaskWriter
+from . import sandbox
 
 logger = logging.getLogger(__name__)
 
 def get_languages():
-    from toyojjudge.language.cpp import Cpp
-    from toyojjudge.language.haskell import Haskell
+    from .language.cpp import Cpp
+    from .language.haskell import Haskell
     return {
         "C++14" : Cpp("c++14"),
         "Haskell" : Haskell(),
@@ -45,7 +45,7 @@ async def get_available_languages(pool):
     return result
 
 def get_checkers():
-    from toyojjudge.checker.exact import ExactChecker
+    from .checker.exact import ExactChecker
     return {
         "exact" : ExactChecker(),
     }

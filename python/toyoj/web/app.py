@@ -1,6 +1,6 @@
 from flask import Flask, url_for, render_template
-from toyojweb import database, markdown
-from toyojweb.blueprints import user, submission, problem, testcase
+from . import database, markdown
+from .blueprints import user, submission, problem, testcase
 
 app = Flask(__name__)
 

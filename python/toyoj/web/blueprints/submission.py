@@ -1,6 +1,5 @@
-from collections import namedtuple
 from flask import Blueprint, render_template, abort
-from toyojweb import database
+from .. import database
 
 blueprint = Blueprint('submission', __name__)
 
